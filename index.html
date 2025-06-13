@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discovery Dispute Management Dashboard</title>
+    <style>
+        /* All of your existing CSS is excellent. No changes needed. */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: #f8f9fa;
+            color: #212529;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: white;
+            padding: 24px;
+            margin-bottom: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            color: #212529;
+            margin-bottom: 8px;
+        }
+
+        header h2 {
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: #6c757d;
+        }
+
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5c636a;
+        }
+
+        .btn-action {
+            background-color: #198754;
+            color: white;
+            padding: 8px 16px;
+            font-size: 13px;
+        }
+
+        .btn-action:hover {
+            background-color: #157347;
+        }
+
+        .btn-warning {
+            background-color: #fd7e14;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background-color: #e55a0d;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .table-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .table-view {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-view th, 
+        .table-view td {
+            padding: 16px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+
+        .table-view th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .objection-textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            resize: vertical;
+            font-family: inherit;
+        }
+
+        .reply-content {
+            background-color: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            min-height: 120px;
+            white-space: pre-wrap; /* Allows newlines from AI to render */
+        }
+
+        .reply-content.empty {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0d6efd;
+            font-style: italic;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #0d6efd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .card-view { display: none; }
+
+        @media (max-width: 900px) {
+            .table-container { display: none; }
+            .card-view { display: block; }
+            .action-bar { flex-direction: column; }
+            .btn { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Discovery Dispute Management Dashboard</h1>
+            <h2 id="case-name">Case: Loading...</h2>
+        </header>
+
+        <div class="action-bar">
+            <button class="btn btn-primary" data-action="upload">Upload Opponent's Response</button>
+            <button class="btn btn-secondary" data-action="meet-confer">Generate Meet & Confer Letter</button>
+            <button class="btn btn-secondary" data-action="court-summary">Generate Court Summary Chart</button>
+        </div>
+
+        <!-- Desktop Table View -->
+        <div class="table-container">
+            <table class="table-view">
+                <thead>
+                    <tr>
+                        <th>Request #</th>
+                        <th>Your Request</th>
+                        <th>Opponent's Objection</th>
+                        <th>AI-Generated Reply</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Dynamically populated -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile Card View -->
+        <div class="card-view" id="card-container">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+
+    <!-- The streamlined and functional script -->
+    <script>
+        // In a real app, this data would be loaded from a file or database.
+        // For our MVP, we'll keep it here as the starting point.
+        const initialCaseData = {
+            caseName: "Doe v. Global Grocers Inc.",
+            requests: [
+                { id: 1, text: "All documents relating to the maintenance and inspection of the premises where the incident occurred for the six months prior to the incident.", objection: "Defendant objects to this request as overly broad, unduly burdensome, and seeking information not reasonably calculated to lead to the discovery of admissible evidence.", reply: null },
+                { id: 2, text: "All photographs, videos, or other recordings of the area where the incident occurred, taken within 24 hours of the incident.", objection: "Defendant objects to this request as overly broad and vague. The term 'area' is undefined.", reply: null },
+                { id: 3, text: "All incident reports prepared by any employee relating to the incident.", objection: "Defendant objects on the grounds that this request seeks documents protected by the attorney work product doctrine.", reply: null }
+            ]
+        };
+
+        // Renders the entire UI based on the current data
+        function renderUI() {
+            const tableBody = document.getElementById('table-body');
+            const cardContainer = document.getElementById('card-container');
+            
+            tableBody.innerHTML = '';
+            cardContainer.innerHTML = '';
+
+            initialCaseData.requests.forEach((request, index) => {
+                // Table Row HTML
+                const tableRowHtml = `
+                    <td>${index + 1}</td>
+                    <td class="request-text">${request.text}</td>
+                    <td><textarea class="objection-textarea" data-request-id="${request.id}">${request.objection}</textarea></td>
+                    <td><div class="reply-content ${request.reply ? '' : 'empty'}" id="reply-${request.id}">${request.reply || 'Awaiting Reply...'}</div></td>
+                    <td><button class="btn btn-action" data-request-id="${request.id}">Generate Reply</button></td>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', tableRowHtml);
+            });
+            
+            // Note: The mobile card view logic would be similar, but is omitted for MVP clarity.
+            // You can easily add the card rendering logic back here if needed.
+        }
+
+        // Main function to generate a reply
+        async function generateReply(requestId) {
+            const button = document.querySelector(`.btn[data-request-id="${requestId}"]`);
+            const objectionTextarea = document.querySelector(`.objection-textarea[data-request-id="${requestId}"]`);
+            const replyDiv = document.getElementById(`reply-${requestId}`);
+            
+            const requestData = initialCaseData.requests.find(r => r.id === requestId);
+            const objection = objectionTextarea.value.trim();
+
+            if (!objection) {
+                alert("Please enter the opponent's objection first.");
+                return;
+            }
+
+            // --- PROMPT ENGINEERING ---
+            const legalPrompt = `
+                You are an expert legal assistant AI specializing in discovery disputes.
+                A lawyer has made the following discovery request: "REQUEST: ${requestData.text}"
+                The opposing counsel has responded with this objection: "OBJECTION: ${objection}"
+                Your task is to draft a concise, professional, and persuasive reply to the objection. Argue why the request is proper. Only provide the body of the argument.
+            `;
+            
+            // --- UI UPDATE: LOADING STATE ---
+            button.disabled = true;
+            button.textContent = 'Generating...';
+            replyDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
+            replyDiv.classList.remove('empty');
+
+            // --- API CALL ---
+            const result = await window.electronAPI.askGemini(legalPrompt);
+
+            // --- UI UPDATE: DISPLAY RESULT ---
+            if (result.success) {
+                replyDiv.textContent = result.text;
+                // Store the reply in our data object
+                requestData.reply = result.text;
+            } else {
+                replyDiv.textContent = `Error: ${result.error}`;
+            }
+            
+            button.disabled = false;
+            button.textContent = 'Generate Reply';
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('case-name').textContent = `Case: ${initialCaseData.caseName}`;
+            renderUI();
+
+            // Event Delegation for all "Generate Reply" buttons
+            document.body.addEventListener('click', (event) => {
+                if (event.target && event.target.classList.contains('btn-action')) {
+                    const requestId = parseInt(event.target.dataset.requestId);
+                    generateReply(requestId);
+                }
+            });
+            
+            // Event Delegation for top action bar buttons
+            document.querySelector('.action-bar').addEventListener('click', (event) => {
+                if (event.target.dataset.action) {
+                    alert(`Action "${event.target.dataset.action}" would be triggered here.`);
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
