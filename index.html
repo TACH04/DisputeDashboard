@@ -232,12 +232,25 @@
     <script>
         // In a real app, this data would be loaded from a file or database.
         // For our MVP, we'll keep it here as the starting point.
+        // In index.html, replace the entire initialCaseData object
+
         const initialCaseData = {
-            caseName: "Doe v. Global Grocers Inc.",
+            caseName: "Gardner v. Navajo County, et al.", // Updated case name
             requests: [
-                { id: 1, text: "All documents relating to the maintenance and inspection of the premises where the incident occurred for the six months prior to the incident.", objection: "Defendant objects to this request as overly broad, unduly burdensome, and seeking information not reasonably calculated to lead to the discovery of admissible evidence.", reply: null },
-                { id: 2, text: "All photographs, videos, or other recordings of the area where the incident occurred, taken within 24 hours of the incident.", objection: "Defendant objects to this request as overly broad and vague. The term 'area' is undefined.", reply: null },
-                { id: 3, text: "All incident reports prepared by any employee relating to the incident.", objection: "Defendant objects on the grounds that this request seeks documents protected by the attorney work product doctrine.", reply: null }
+                { id: 1, text: "For each employee or agent of Wexford... affirm or deny whether that person will testify about any spoken statements allegedly made by Amanda Gardner...", objection: null, reply: null },
+                { id: 2, text: "Identify all spoken or written statements made by each employee or agent of Wexford... regarding the treatment of Amanda Gardner.", objection: null, reply: null },
+                { id: 3, text: "Under the contract by which Wexford undertook to provide medical care... describe which entities were responsible for the cost of medical services...", objection: null, reply: null },
+                { id: 4, text: "Identify the average number of patients in the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null },
+                { id: 5, text: "Identify all Wexford employees, agents, or independent contractors hired by Wexford who provided medical services at the Navajo County Jail...", objection: null, reply: null },
+                { id: 6, text: "Identify every written protocol or policy in effect at the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null },
+                { id: 7, text: "Identify any entry or omission in the medical chart of Amanda Gardner that fails to conform to Wexford's policy on documentation.", objection: null, reply: null },
+                { id: 8, text: "Describe all communications with Navajo County Sheriff's Office detention staff about Amanda Gardner's health needs and transport.", objection: null, reply: null },
+                { id: 9, text: "Identify the principal or material facts you believe support any of the following defenses: (a) Plaintiff has failed to state a claim...", objection: null, reply: null },
+                { id: 10, text: "Identify the principal or material facts not mentioned in your response to Non-Uniform Interrogatory #9 that you believe support any other defense you are claiming.", objection: null, reply: null },
+                { id: 11, text: "Identify whether the care Wexford provided to Amanda Gardner... was performed in accordance with Wexford's national policy, practices, and training.", objection: null, reply: null },
+                { id: 12, text: "If you contend that any party or anyone else... is at fault for causing injuries to Amanda Gardner, describe the primary material facts that support your contention...", objection: null, reply: null },
+                { id: 13, text: "Have you ever had any communications from Navajo County or Navajo County Sheriff's Office criticizing your provision of correctional healthcare...", objection: null, reply: null },
+                { id: 14, text: "For each witness you have identified... affirm or deny they have provided prior testimony under oath related to medical care.", objection: null, reply: null }
             ]
         };
 
@@ -294,7 +307,14 @@
             replyDiv.classList.remove('empty');
 
             // --- API CALL ---
-            const result = await window.electronAPI.askGemini(legalPrompt);
+            // Create the payload object that main.js is expecting
+            const payload = {
+                requestText: requestData.text,
+                objectionText: objection
+            };
+
+            // Send the structured object to the backend
+            const result = await window.electronAPI.askGemini(payload);
 
             // --- UI UPDATE: DISPLAY RESULT ---
             if (result.success) {
@@ -323,9 +343,63 @@
             });
             
             // Event Delegation for top action bar buttons
-            document.querySelector('.action-bar').addEventListener('click', (event) => {
-                if (event.target.dataset.action) {
-                    alert(`Action "${event.target.dataset.action}" would be triggered here.`);
+            // In your <script> tag in index.html, modify the action bar listener
+
+           // In your <script> tag in index.html, replace the whole action-bar listener
+
+            document.querySelector('.action-bar').addEventListener('click', async (event) => {
+                if (!event.target.dataset.action) return;
+                
+                const action = event.target.dataset.action;
+                const button = event.target;
+
+                if (action === 'upload') {
+                    button.disabled = true;
+                    button.textContent = 'Processing...';
+
+                    try {
+                        // --- This is the part we are making more robust ---
+                        const requestsForAI = initialCaseData.requests.map(r => ({ id: r.id, text: r.text }));
+                        const result = await window.electronAPI.uploadAndProcess(requestsForAI);
+
+                        // In index.html, inside the action-bar click listener
+
+                        if (result.success) {
+                            // This logic is now simpler and more direct.
+                            result.data.forEach(extracted => {
+                                // Find the specific request object in our main data array
+                                const requestToUpdate = initialCaseData.requests.find(r => r.id === extracted.id);
+                                
+                                // If we found it, update its objection property directly
+                                if (requestToUpdate) {
+                                    requestToUpdate.objection = extracted.objection;
+                                }
+                            });
+                            
+                            // After the loop has finished updating the data,
+                            // explicitly call renderUI() to redraw the screen with the new data.
+                            renderUI(); 
+                            
+                            alert('Processing complete!');
+                        } else {
+                            // ... your existing error handling ...
+                            alert(`Processing Error: ${result.error}`);
+                        }
+                    } catch (error) {
+                        // This will catch any error from the invoke call itself
+                        console.error("Error invoking uploadAndProcess:", error);
+                        alert(`A critical error occurred: ${error.message}`);
+                    } finally {
+                        // This ensures the button is always re-enabled
+                        button.disabled = false;
+                        button.textContent = "Upload Opponent's Response";
+                    }
+
+                } else if (action === 'meet-confer') {
+                    // ... your existing meet & confer logic ...
+                    // (This should also be wrapped in a try...catch for production)
+                } else {
+                    alert(`Action "${action}" would be triggered here.`);
                 }
             });
         });
