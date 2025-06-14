@@ -1,0 +1,23 @@
+{
+  "overly broad": [
+    {
+      "argument": "This is the user's custom, battle-tested argument for 'overly broad'. It's better than the default one.",
+      "cases": ["A.B. v. C.D., 123 F. Supp. 2d 456 (S.D. Cal. 2024)"],
+      "usageCount": 5
+    }
+  ],
+  "vague": [
+    {
+      "argument": "Another user-saved argument specifically for when the term 'communication' is objected to as vague.",
+      "cases": [],
+      "usageCount": 2
+    }
+  ],
+  "newly_defined_objection": [
+    {
+        "argument": "This argument addresses a unique objection type not in the original library.",
+        "cases": ["Case. X v. Y"],
+        "usageCount": 1
+    }
+  ]
+}

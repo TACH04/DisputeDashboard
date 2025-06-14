@@ -5,405 +5,324 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Discovery Dispute Management Dashboard</title>
     <style>
-        /* All of your existing CSS is excellent. No changes needed. */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --primary-blue: #0d6efd;
+            --secondary-gray: #6c757d;
+            --action-green: #198754;
+            --background-light: #f8f9fa;
+            --text-dark: #212529;
+            --border-color: #dee2e6;
         }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        /* --- DEFAULT (DASHBOARD) STATE --- */
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-            background-color: #f8f9fa;
-            color: #212529;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-light);
+            color: var(--text-dark);
             line-height: 1.5;
         }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
+        #focus-view { display: none; } /* Hide focus view by default */
+        
+        /* --- FOCUS MODE STATE (activated by JS adding a class to the body) --- */
+        body.focus-mode-active {
+            height: 100vh;
+            overflow: hidden; /* This is the key: only hide overflow when in focus mode */
         }
+        body.focus-mode-active #dashboard-view { display: none; }
+        body.focus-mode-active #focus-view { display: flex; }
 
-        header {
-            background-color: white;
-            padding: 24px;
-            margin-bottom: 24px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
 
-        header h1 {
-            font-size: 2rem;
-            font-weight: 600;
-            color: #212529;
-            margin-bottom: 8px;
-        }
-
-        header h2 {
-            font-size: 1.25rem;
-            font-weight: 400;
-            color: #6c757d;
-        }
-
-        .action-bar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
+        /* --- SHARED STYLES --- */
+        .container { max-width: 95%; margin: 0 auto; padding: 20px; }
+        header { padding: 20px; margin-bottom: 20px; }
+        header h1 { font-size: 1.8rem; }
+        header h2 { font-size: 1.1rem; font-weight: 400; color: var(--secondary-gray); }
+        .action-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
         .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            display: inline-block;
+            padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px;
+            font-weight: 500; cursor: pointer; transition: all 0.2s ease;
+            display: inline-flex; align-items: center; gap: 8px;
         }
+        .btn-primary { background-color: var(--primary-blue); color: white; }
+        .btn-primary:hover { background-color: #0b5ed7; }
+        .btn-secondary { background-color: var(--secondary-gray); color: white; }
+        .btn-secondary:hover { background-color: #5c636a; }
+        .btn-action { background-color: var(--action-green); color: white; }
+        .btn-action:hover { background-color: #157347; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .btn-primary {
-            background-color: #0d6efd;
-            color: white;
+        /* --- DASHBOARD VIEW --- */
+        .table-container { background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
+        .dispute-table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        .dispute-table th, .dispute-table td { padding: 16px; border-bottom: 1px solid var(--border-color); vertical-align: top; text-align: left; }
+        .dispute-table thead th { background-color: var(--background-light); font-weight: 600; position: sticky; top: 0; z-index: 10; }
+        .dispute-table tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
+        .dispute-table tbody tr:hover { background-color: #e9ecef; }
+        .col-number { width: 5%; } .col-request { width: 35%; } .col-objection { width: 60%; }
+
+        /* --- FOCUS VIEW --- */
+        #focus-view {
+            width: 100%; height: 100vh; flex-direction: column;
         }
-
-        .btn-primary:hover {
-            background-color: #0b5ed7;
+        .focus-container {
+            max-width: 1400px; margin: 0 auto; padding: 20px;
+            display: flex; flex-direction: column; flex-grow: 1; min-height: 0;
         }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
+        .focus-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); }
+        .focus-header .nav-btn { font-size: 1.5rem; padding: 4px 12px; }
+        .focus-header h3 { font-size: 1.4rem; color: var(--text-dark); text-align: center;}
+        .focus-request { background-color: white; padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid var(--border-color); }
+        
+        .focus-content-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 25px;
+            flex-grow: 1; min-height: 0;
         }
-
-        .btn-secondary:hover {
-            background-color: #5c636a;
-        }
-
-        .btn-action {
-            background-color: #198754;
-            color: white;
-            padding: 8px 16px;
-            font-size: 13px;
-        }
-
-        .btn-action:hover {
-            background-color: #157347;
-        }
-
-        .btn-warning {
-            background-color: #fd7e14;
-            color: white;
-        }
-
-        .btn-warning:hover {
-            background-color: #e55a0d;
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-
-        .table-container {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .table-view {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .table-view th, 
-        .table-view td {
-            padding: 16px;
-            text-align: left;
-            border-bottom: 1px solid #dee2e6;
-            vertical-align: top;
-        }
-
-        .table-view th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .objection-textarea {
-            width: 100%;
-            min-height: 120px;
-            padding: 10px;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            resize: vertical;
-            font-family: inherit;
-        }
-
-        .reply-content {
-            background-color: #f8f9fa;
-            padding: 12px;
-            border-radius: 4px;
-            border: 1px solid #dee2e6;
-            min-height: 120px;
-            white-space: pre-wrap; /* Allows newlines from AI to render */
-        }
-
-        .reply-content.empty {
-            color: #6c757d;
-            font-style: italic;
-        }
-
-        .loading {
+        
+        .focus-col {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #0d6efd;
-            font-style: italic;
+            flex-direction: column;
+            min-height: 0; /* THIS IS THE FIX */
         }
-
-        .loading-spinner {
-            width: 20px;
-            height: 20px;
-            border: 2px solid #f3f3f3;
-            border-top: 2px solid #0d6efd;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-right: 8px;
+        .focus-col h4 { margin-bottom: 10px; font-size: 1.1rem; }
+        .text-pane {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: white;
+            font-family: Georgia, 'Times New Roman', Times, serif;
+            font-size: 16px;
+            line-height: 1.6;
+            overflow-y: auto;
+            flex-grow: 1;
         }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .card-view { display: none; }
-
-        @media (max-width: 900px) {
-            .table-container { display: none; }
-            .card-view { display: block; }
-            .action-bar { flex-direction: column; }
-            .btn { text-align: center; }
-        }
+        
+        .reply-content.empty { font-style: italic; color: var(--secondary-gray); }
+        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--primary-blue); animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Discovery Dispute Management Dashboard</h1>
-            <h2 id="case-name">Case: Loading...</h2>
-        </header>
-
-        <div class="action-bar">
-            <button class="btn btn-primary" data-action="upload">Upload Opponent's Response</button>
-            <button class="btn btn-secondary" data-action="meet-confer">Generate Meet & Confer Letter</button>
-            <button class="btn btn-secondary" data-action="court-summary">Generate Court Summary Chart</button>
-        </div>
-
-        <!-- Desktop Table View -->
-        <div class="table-container">
-            <table class="table-view">
-                <thead>
-                    <tr>
-                        <th>Request #</th>
-                        <th>Your Request</th>
-                        <th>Opponent's Objection</th>
-                        <th>AI-Generated Reply</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <!-- Dynamically populated -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Mobile Card View -->
-        <div class="card-view" id="card-container">
-            <!-- Dynamically populated -->
+    <!-- Main Dashboard View -->
+    <div id="dashboard-view">
+        <div class="container">
+            <header>
+                <h1>Discovery Dispute Management Dashboard</h1>
+                <h2 id="case-name">Case: Loading...</h2>
+            </header>
+            <div class="action-bar">
+                <button class="btn btn-primary" data-action="upload">Upload Opponent's Response</button>
+                <button class="btn btn-secondary" data-action="meet-confer">Generate Meet & Confer Letter</button>
+                <button class="btn btn-secondary" data-action="court-summary">Generate Court Summary Chart</button>
+            </div>
+            <div class="table-container">
+                <table class="dispute-table">
+                    <thead>
+                        <tr>
+                            <th class="col-number">#</th>
+                            <th class="col-request">Your Request (Summary)</th>
+                            <th class="col-objection">Opponent's Objection</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
-    <!-- The streamlined and functional script -->
+    <!-- Focus View for a Single Dispute -->
+    <div id="focus-view">
+        <div class="focus-container">
+            <div class="focus-header">
+                <button id="focus-back" class="btn btn-secondary">← Back to Dashboard</button>
+                <h3 id="focus-title">Request X of Y</h3>
+                <div>
+                    <button id="focus-prev" class="btn btn-primary nav-btn">‹</button>
+                    <button id="focus-next" class="btn btn-primary nav-btn">›</button>
+                </div>
+            </div>
+            <div class="focus-request" id="focus-request-text"></div>
+            <div class="focus-content-grid">
+                <div class="focus-col">
+                    <h4>Opponent's Objection</h4>
+                    <textarea id="focus-objection-textarea" class="text-pane"></textarea>
+                </div>
+                <div class="focus-col">
+                     <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4>AI-Generated Replies</h4>
+                        <button id="focus-generate" class="btn btn-action">Generate</button>
+                    </div>
+                    <div id="focus-reply-editor" class="text-pane" contenteditable="true"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // In a real app, this data would be loaded from a file or database.
-        // For our MVP, we'll keep it here as the starting point.
-        // In index.html, replace the entire initialCaseData object
-
-        const initialCaseData = {
-            caseName: "Gardner v. Navajo County, et al.", // Updated case name
-            requests: [
-                { id: 1, text: "For each employee or agent of Wexford... affirm or deny whether that person will testify about any spoken statements allegedly made by Amanda Gardner...", objection: null, reply: null },
-                { id: 2, text: "Identify all spoken or written statements made by each employee or agent of Wexford... regarding the treatment of Amanda Gardner.", objection: null, reply: null },
-                { id: 3, text: "Under the contract by which Wexford undertook to provide medical care... describe which entities were responsible for the cost of medical services...", objection: null, reply: null },
-                { id: 4, text: "Identify the average number of patients in the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null },
-                { id: 5, text: "Identify all Wexford employees, agents, or independent contractors hired by Wexford who provided medical services at the Navajo County Jail...", objection: null, reply: null },
-                { id: 6, text: "Identify every written protocol or policy in effect at the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null },
-                { id: 7, text: "Identify any entry or omission in the medical chart of Amanda Gardner that fails to conform to Wexford's policy on documentation.", objection: null, reply: null },
-                { id: 8, text: "Describe all communications with Navajo County Sheriff's Office detention staff about Amanda Gardner's health needs and transport.", objection: null, reply: null },
-                { id: 9, text: "Identify the principal or material facts you believe support any of the following defenses: (a) Plaintiff has failed to state a claim...", objection: null, reply: null },
-                { id: 10, text: "Identify the principal or material facts not mentioned in your response to Non-Uniform Interrogatory #9 that you believe support any other defense you are claiming.", objection: null, reply: null },
-                { id: 11, text: "Identify whether the care Wexford provided to Amanda Gardner... was performed in accordance with Wexford's national policy, practices, and training.", objection: null, reply: null },
-                { id: 12, text: "If you contend that any party or anyone else... is at fault for causing injuries to Amanda Gardner, describe the primary material facts that support your contention...", objection: null, reply: null },
-                { id: 13, text: "Have you ever had any communications from Navajo County or Navajo County Sheriff's Office criticizing your provision of correctional healthcare...", objection: null, reply: null },
-                { id: 14, text: "For each witness you have identified... affirm or deny they have provided prior testimony under oath related to medical care.", objection: null, reply: null }
-            ]
+        let currentFocusIndex = -1;
+        let caseData = {
+            caseName: "Gardner v. Navajo County, et al. (Test Data)",
+            requests: [ { id: 1, text: "For each employee or agent of Wexford... affirm or deny whether that person will testify about any spoken statements allegedly made by Amanda Gardner...", objection: null, reply: null }, { id: 2, text: "Identify all spoken or written statements made by each employee or agent of Wexford... regarding the treatment of Amanda Gardner.", objection: null, reply: null }, { id: 3, text: "Under the contract by which Wexford undertook to provide medical care... describe which entities were responsible for the cost of medical services...", objection: null, reply: null }, { id: 4, text: "Identify the average number of patients in the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null }, { id: 5, text: "Identify all Wexford employees, agents, or independent contractors hired by Wexford who provided medical services at the Navajo County Jail...", objection: null, reply: null }, { id: 6, text: "Identify every written protocol or policy in effect at the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null }, { id: 7, text: "Identify any entry or omission in the medical chart of Amanda Gardner that fails to conform to Wexford's policy on documentation.", objection: null, reply: null }, { id: 8, text: "Describe all communications with Navajo County Sheriff's Office detention staff about Amanda Gardner's health needs and transport.", objection: null, reply: null }, { id: 9, text: "Identify the principal or material facts you believe support any of the following defenses: (a) Plaintiff has failed to state a claim...", objection: null, reply: null }, { id: 10, text: "Identify the principal or material facts not mentioned in your response to Non-Uniform Interrogatory #9 that you believe support any other defense you are claiming.", objection: null, reply: null }, { id: 11, text: "Identify whether the care Wexford provided to Amanda Gardner... was performed in accordance with Wexford's national policy, practices, and training.", objection: null, reply: null }, { id: 12, text: "If you contend that any party or anyone else... is at fault for causing injuries to Amanda Gardner, describe the primary material facts that support your contention...", objection: null, reply: null }, { id: 13, text: "Have you ever had any communications from Navajo County or Navajo County Sheriff's Office criticizing your provision of correctional healthcare...", objection: null, reply: null }, { id: 14, text: "For each witness you have identified... affirm or deny they have provided prior testimony under oath related to medical care.", objection: null, reply: null } ]
         };
-
-        // Renders the entire UI based on the current data
-        function renderUI() {
+        const replyEditor = document.getElementById('focus-reply-editor');
+        
+        function renderDashboard() {
+            document.getElementById('case-name').textContent = `Case: ${caseData.caseName}`;
             const tableBody = document.getElementById('table-body');
-            const cardContainer = document.getElementById('card-container');
-            
-            tableBody.innerHTML = '';
-            cardContainer.innerHTML = '';
+            tableBody.innerHTML = ''; 
 
-            initialCaseData.requests.forEach((request, index) => {
-                // Table Row HTML
-                const tableRowHtml = `
-                    <td>${index + 1}</td>
-                    <td class="request-text">${request.text}</td>
-                    <td><textarea class="objection-textarea" data-request-id="${request.id}">${request.objection}</textarea></td>
-                    <td><div class="reply-content ${request.reply ? '' : 'empty'}" id="reply-${request.id}">${request.reply || 'Awaiting Reply...'}</div></td>
-                    <td><button class="btn btn-action" data-request-id="${request.id}">Generate Reply</button></td>
-                `;
-                tableBody.insertAdjacentHTML('beforeend', tableRowHtml);
-            });
-            
-            // Note: The mobile card view logic would be similar, but is omitted for MVP clarity.
-            // You can easily add the card rendering logic back here if needed.
-        }
 
-        // Main function to generate a reply
-        async function generateReply(requestId) {
-            const button = document.querySelector(`.btn[data-request-id="${requestId}"]`);
-            const objectionTextarea = document.querySelector(`.objection-textarea[data-request-id="${requestId}"]`);
-            const replyDiv = document.getElementById(`reply-${requestId}`);
-            
-            const requestData = initialCaseData.requests.find(r => r.id === requestId);
-            const objection = objectionTextarea.value.trim();
+            // PASTE THIS CORRECTED BLOCK in its place
+            caseData.requests.forEach((request, index) => {
+                const summary = (str, len) => !str ? '' : (str.length > len ? str.substring(0, len) + '...' : str);
+                const row = document.createElement('tr');
+                row.dataset.index = index; // Used for clicking to enter focus view
 
-            if (!objection) {
-                alert("Please enter the opponent's objection first.");
-                return;
-            }
+                // --- Create each cell individually to guarantee safety and correctness ---
 
-            // --- PROMPT ENGINEERING ---
-            const legalPrompt = `
-                You are an expert legal assistant AI specializing in discovery disputes.
-                A lawyer has made the following discovery request: "REQUEST: ${requestData.text}"
-                The opposing counsel has responded with this objection: "OBJECTION: ${objection}"
-                Your task is to draft a concise, professional, and persuasive reply to the objection. Argue why the request is proper. Only provide the body of the argument.
-            `;
-            
-            // --- UI UPDATE: LOADING STATE ---
-            button.disabled = true;
-            button.textContent = 'Generating...';
-            replyDiv.innerHTML = '<div class="loading"><div class="loading-spinner"></div></div>';
-            replyDiv.classList.remove('empty');
-
-            // --- API CALL ---
-            // Create the payload object that main.js is expecting
-            const payload = {
-                requestText: requestData.text,
-                objectionText: objection
-            };
-
-            // Send the structured object to the backend
-            const result = await window.electronAPI.askGemini(payload);
-
-            // --- UI UPDATE: DISPLAY RESULT ---
-            if (result.success) {
-                replyDiv.textContent = result.text;
-                // Store the reply in our data object
-                requestData.reply = result.text;
-            } else {
-                replyDiv.textContent = `Error: ${result.error}`;
-            }
-            
-            button.disabled = false;
-            button.textContent = 'Generate Reply';
-        }
-
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('case-name').textContent = `Case: ${initialCaseData.caseName}`;
-            renderUI();
-
-            // Event Delegation for all "Generate Reply" buttons
-            document.body.addEventListener('click', (event) => {
-                if (event.target && event.target.classList.contains('btn-action')) {
-                    const requestId = parseInt(event.target.dataset.requestId);
-                    generateReply(requestId);
+                // Cell 1: Status Indicator
+                const statusCell = document.createElement('td');
+                statusCell.className = 'col-status';
+                const hasObjection = request.objection && request.objection.trim() !== '';
+                const hasReply = request.reply && request.reply.trim() !== '';
+                if (hasObjection) {
+                    statusCell.innerHTML = hasReply 
+                        ? '<span class="status-indicator complete" title="Reply Generated">✔</span>'
+                        : '<span class="status-indicator pending" title="Objection Needs Reply">!</span>';
                 }
-            });
-            
-            // Event Delegation for top action bar buttons
-            // In your <script> tag in index.html, modify the action bar listener
+                row.appendChild(statusCell);
 
-           // In your <script> tag in index.html, replace the whole action-bar listener
-
-            document.querySelector('.action-bar').addEventListener('click', async (event) => {
-                if (!event.target.dataset.action) return;
+                // Cell 2: Request Number
+                const numberCell = document.createElement('td');
+                numberCell.className = 'col-number';
+                numberCell.textContent = request.id; // Correct data
+                row.appendChild(numberCell);
                 
-                const action = event.target.dataset.action;
-                const button = event.target;
+                // Cell 3: Your Request (Summary)
+                const requestCell = document.createElement('td');
+                requestCell.className = 'col-request';
+                requestCell.textContent = summary(request.text, 100); // Correct data: `request.text`
+                row.appendChild(requestCell);
+                
+                // Cell 4: Opponent's Objection
+                const objectionCell = document.createElement('td');
+                objectionCell.className = 'col-objection';
+                objectionCell.textContent = summary(request.objection, 120); // Correct data: `request.objection`
+                row.appendChild(objectionCell);
+                
+                // Add the finished, safe row to the table
+                tableBody.appendChild(row);
+            });            
 
-                if (action === 'upload') {
+
+            if (caseData.requests.length === 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = '<td colspan="4" style="text-align: center; color: var(--secondary-gray);">No requests found.</td>';
+                tableBody.appendChild(emptyRow);
+            }
+        }
+        
+        function renderFocusView() {
+            if (currentFocusIndex < 0 || currentFocusIndex >= caseData.requests.length) return;
+            const request = caseData.requests[currentFocusIndex];
+            document.getElementById('focus-title').textContent = `Request ${request.id} of ${caseData.requests.length}`;
+            document.getElementById('focus-request-text').textContent = request.text;
+            document.getElementById('focus-objection-textarea').value = request.objection || '';
+            replyEditor.innerHTML = request.reply || `<div class="reply-content empty">Awaiting Reply...</div>`;
+            document.getElementById('focus-prev').disabled = (currentFocusIndex === 0);
+            document.getElementById('focus-next').disabled = (currentFocusIndex === caseData.requests.length - 1);
+        }
+
+        // --- REVISED VIEW-SWITCHING LOGIC ---
+        function showDashboardView() {
+            document.body.classList.remove('focus-mode-active');
+            renderDashboard();
+        }
+
+        function showFocusView(index) {
+            currentFocusIndex = index;
+            document.body.classList.add('focus-mode-active');
+            renderFocusView();
+        }
+
+        async function generateRepliesForFocus() {
+            const request = caseData.requests[currentFocusIndex];
+            const objectionText = document.getElementById('focus-objection-textarea').value.trim();
+            const button = document.getElementById('focus-generate');
+            if (!objectionText) { alert("Please enter an objection first."); return; }
+            request.objection = objectionText;
+            button.disabled = true;
+            button.innerHTML = '<div class="loading-spinner"></div>';
+            replyEditor.innerHTML = '';
+            try {
+                const payload = { requestText: request.text, objectionText: objectionText };
+                const result = await window.electronAPI.askGemini(payload);
+                if (result.success) {
+                    request.reply = result.html;
+                    replyEditor.innerHTML = result.html;
+                } else {
+                    replyEditor.innerHTML = `<div class="reply-content">Error: ${result.error}</div>`;
+                }
+            } catch (error) {
+                replyEditor.innerHTML = `<div class="reply-content">A critical error occurred: ${error.message}</div>`;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Generate';
+}
+        }
+        
+        function navigateFocus(direction) {
+            const currentRequest = caseData.requests[currentFocusIndex];
+            currentRequest.objection = document.getElementById('focus-objection-textarea').value;
+            currentRequest.reply = replyEditor.innerHTML;
+            const newIndex = currentFocusIndex + direction;
+            if (newIndex >= 0 && newIndex < caseData.requests.length) {
+                currentFocusIndex = newIndex;
+                renderFocusView();
+            }
+        }
+
+        renderDashboard();
+        document.body.addEventListener('click', async (event) => {
+            const dashboardRow = event.target.closest('#table-body tr');
+            if (dashboardRow) { showFocusView(parseInt(dashboardRow.dataset.index)); return; }
+            const action = event.target.dataset.action || event.target.id;
+            switch(action) {
+                case 'focus-back': showDashboardView(); break;
+                case 'focus-next': navigateFocus(1); break;
+                case 'focus-prev': navigateFocus(-1); break;
+                case 'focus-generate': generateRepliesForFocus(); break;
+                case 'upload': {
+                    const button = event.target.closest('button');
                     button.disabled = true;
-                    button.textContent = 'Processing...';
-
+                    button.innerHTML = '<div class="loading-spinner"></div> Processing...';
                     try {
-                        // --- This is the part we are making more robust ---
-                        const requestsForAI = initialCaseData.requests.map(r => ({ id: r.id, text: r.text }));
-                        const result = await window.electronAPI.uploadAndProcess(requestsForAI);
-
-                        // In index.html, inside the action-bar click listener
-
+                        const result = await window.electronAPI.uploadAndProcess(caseData.requests);
                         if (result.success) {
-                            // This logic is now simpler and more direct.
                             result.data.forEach(extracted => {
-                                // Find the specific request object in our main data array
-                                const requestToUpdate = initialCaseData.requests.find(r => r.id === extracted.id);
-                                
-                                // If we found it, update its objection property directly
-                                if (requestToUpdate) {
-                                    requestToUpdate.objection = extracted.objection;
-                                }
+                                const requestToUpdate = caseData.requests.find(r => r.id === extracted.id);
+                                if (requestToUpdate) { requestToUpdate.objection = extracted.objection; }
                             });
-                            
-                            // After the loop has finished updating the data,
-                            // explicitly call renderUI() to redraw the screen with the new data.
-                            renderUI(); 
-                            
-                            alert('Processing complete!');
-                        } else {
-                            // ... your existing error handling ...
-                            alert(`Processing Error: ${result.error}`);
-                        }
+                            renderDashboard();
+                            alert('Processing complete! Objections have been populated.');
+                        } else if (result.error !== "File selection canceled.") { alert(`Processing Error: ${result.error}`); }
                     } catch (error) {
-                        // This will catch any error from the invoke call itself
-                        console.error("Error invoking uploadAndProcess:", error);
-                        alert(`A critical error occurred: ${error.message}`);
+                        alert(`A critical error occurred during upload: ${error.message}`);
+                        console.error("Upload Error:", error);
                     } finally {
-                        // This ensures the button is always re-enabled
                         button.disabled = false;
                         button.textContent = "Upload Opponent's Response";
                     }
-
-                } else if (action === 'meet-confer') {
-                    // ... your existing meet & confer logic ...
-                    // (This should also be wrapped in a try...catch for production)
-                } else {
-                    alert(`Action "${action}" would be triggered here.`);
+                    break;
                 }
-            });
+            }
         });
-
+        document.addEventListener('keydown', (event) => {
+            if (!document.body.classList.contains('focus-mode-active')) return;
+            if (event.key === 'ArrowRight') navigateFocus(1);
+            else if (event.key === 'ArrowLeft') navigateFocus(-1);
+        });
     </script>
 </body>
 </html>

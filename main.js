@@ -169,7 +169,9 @@ async function handleUploadAndProcess(event, requestsFromUI) {
 
 
 
-async function handleAskGemini(event, { requestText, objectionText }) {
+// In main.js, find the handleAskGemini function
+
+async function handleAskGemini(event, { requestText, objectionText, contextText}) {
   console.log("Main process: Starting Deconstructor/Drafter pipeline...");
 
   try {
@@ -177,10 +179,9 @@ async function handleAskGemini(event, { requestText, objectionText }) {
     if (!apiKey) throw new Error("API key not found.");
     
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Your working model
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // --- STEP 1: DECONSTRUCTOR AI CALL ---
-    // Identify all distinct objections made in the opponent's text block.
+    // --- STEP 1: DECONSTRUCTOR AI CALL (No changes here) ---
     const deconstructorPrompt = `
       Analyze the following legal objection text. Identify every distinct legal objection made from the following list: [${Object.keys(objectionLibrary).join(", ")}].
       Return your findings as a JSON array of strings. For example: ["vague", "overly broad", "work product"].
@@ -188,58 +189,76 @@ async function handleAskGemini(event, { requestText, objectionText }) {
 
       Objection Text to Analyze: "${objectionText}"
     `;
-
     console.log("Deconstructor: Identifying objection types...");
     const deconstructorResult = await model.generateContent(deconstructorPrompt);
     const deconstructorResponseText = deconstructorResult.response.text();
     const jsonMatch = deconstructorResponseText.match(/\[.*\]/s);
     if (!jsonMatch) throw new Error("Deconstructor AI failed to return a valid JSON array.");
-    
     const identifiedObjections = JSON.parse(jsonMatch[0]);
     console.log(`Deconstructor: Found objections: ${identifiedObjections.join(', ')}`);
 
-    // --- STEP 2: DRAFTER AI CALLS ---
-    // For each identified objection, draft a specific, legally-cited refutation.
-    // We use Promise.all to run these calls concurrently for better performance.
+    // --- STEP 2: DRAFTER AI CALLS (No changes here) ---
     console.log("Drafter: Generating individual refutation paragraphs...");
     const draftPromises = identifiedObjections.map(objectionKey => {
       const rule = objectionLibrary[objectionKey] || objectionLibrary["unclassifiable"];
-      
       const drafterPrompt = `
-        You are an expert legal assistant AI. Your task is to draft a single, persuasive paragraph refuting a specific discovery objection, following a precise chain of thought.
+              You are an expert legal assistant AI. Your task is to draft a single, persuasive paragraph refuting a specific discovery objection, following a precise chain of thought.
+              
+              --- RULE TO APPLY ---
+              - Objection Type: "${objectionKey}"
+              - Core Argument: "${rule.argument}"
+              - Relevant Cases: [${rule.cases.join(", ")}]
+              --- END OF RULE ---
 
-        --- RULE TO APPLY ---
-        - Objection Type: "${objectionKey}"
-        - Core Argument: "${rule.argument}"
-        - Relevant Cases: [${rule.cases.join(", ")}]
-        --- END OF RULE ---
+              --- DISPUTE CONTEXT ---
+              - Plaintiff's Request: "${requestText}"
+              - Full Text of Defendant's Objection: "${objectionText}"
+              --- END OF CONTEXT ---
 
-        --- DISPUTE CONTEXT ---
-        - Plaintiff's Request: "${requestText}"
-        - Full Text of Defendant's Objection: "${objectionText}"
-        --- END OF CONTEXT ---
+              --- ADDITIONAL USER-PROVIDED CONTEXT TO CONSIDER ---
+              ${contextText ? contextText : "None provided."}
+              --- END OF ADDITIONAL CONTEXT ---
 
-        INSTRUCTIONS:
-        1.  **State the Law:** Begin by stating the Core Argument for the specified Objection Type. You MUST cite one or more of the Relevant Cases if provided.
-        2.  **Apply to Facts:** Immediately after, explain WHY the Defendant's Objection is improper in the context of the specific Plaintiff's Request, directly refuting their reasoning.
-        3.  **Demand Action:** Conclude the paragraph with a professional instruction, like "Please supplement your response."
-        4.  **Final Output:** Provide ONLY the single, complete legal paragraph.
-
-        Draft the paragraph now.
-      `;
-
-      return model.generateContent(drafterPrompt);
+              INSTRUCTIONS:
+              1.  **Integrate Context:** Carefully consider the "ADDITIONAL USER-PROVIDED CONTEXT". If it contains specific facts or case law, prioritize using it to make your argument more specific and powerful.
+              2.  **State the Law:** Begin by stating the Core Argument for the specified Objection Type. You MUST cite one or more of the Relevant Cases if provided, or cases from the user's context.
+              3.  **Apply to Facts:** Immediately after, explain WHY the Defendant's Objection is improper in the context of the specific Plaintiff's Request, directly refuting their reasoning. Use details from the user context if available.
+              4.  **Demand Action:** Conclude the paragraph with a professional instruction, like "Please supplement your response."
+              5.  **Final Output:** Provide ONLY the single, complete legal paragraph.
+              
+              Draft the paragraph now.
+            `;
+      // Return both the AI call and the original key
+      return model.generateContent(drafterPrompt).then(result => ({
+          key: objectionKey,
+          paragraph: result.response.text()
+      }));
     });
 
-    const draftedResults = await Promise.all(draftPromises);
-    const draftedParagraphs = draftedResults.map(result => result.response.text());
-    console.log(`Drafter: Successfully generated ${draftedParagraphs.length} paragraphs.`);
+    const draftedReplies = await Promise.all(draftPromises);
+    console.log(`Drafter: Successfully generated ${draftedReplies.length} structured replies.`);
 
-    // --- STEP 3: ASSEMBLER ---
-    // Combine the individually drafted paragraphs into one cohesive final response.
-    const finalResponse = draftedParagraphs.join('\n\n');
+    // Combine the individually drafted paragraphs into a single HTML string.
+    const finalHtmlResponse = draftedReplies.map(reply => {
+        // Create an HTML-safe version of the paragraph
+        // THIS IS THE CORRECTED CODE BLOCK
+// It properly escapes special HTML characters to prevent the DOM from breaking.
+        const safeParagraph = reply.paragraph
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;")
+          .replace(/\n/g, '<br>');
 
-    return { success: true, text: finalResponse };
+          
+        const header = `<strong>Refuting: '${reply.key}'</strong>`;
+        
+        return `<p>${header}<br>${safeParagraph}</p>`;
+    }).join('<hr style="margin: 16px 0; border: none; border-top: 1px solid #dee2e6;">'); // Use an <hr> for a visual separator.
+
+    // Return an object with an 'html' key
+    return { success: true, html: finalHtmlResponse };
 
   } catch (error) {
     console.error("Error in Deconstructor/Drafter pipeline:", error);
