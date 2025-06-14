@@ -141,7 +141,6 @@
                 
         .reply-content.empty { font-style: italic; color: var(--secondary-gray); }
         .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--primary-blue); animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -290,42 +289,44 @@ window.electronAPI.onUploadProgress((result) => {
                 const summary = (str, len) => !str ? '' : (str.length > len ? str.substring(0, len) + '...' : str);
                 const row = document.createElement('tr');
                 row.dataset.index = index; // Used for clicking to enter focus view
-
-                // --- Create each cell individually to guarantee safety and correctness ---
-
-                // Cell 1: Status Indicator
-                const statusCell = document.createElement('td');
-                statusCell.className = 'col-status';
+            
+                // Create three cells to match the three-column header
+                const numberCell = document.createElement('td');
+                const requestCell = document.createElement('td');
+                const objectionCell = document.createElement('td');
+            
+                // Assign the correct classes from the <thead> to match CSS widths
+                numberCell.className = 'col-number';
+                requestCell.className = 'col-request';
+                objectionCell.className = 'col-objection';
+            
+                // --- Populate Cells ---
+            
+                // Cell 1: Combine Status Indicator and Number
                 const hasObjection = request.objection && request.objection.trim() !== '';
                 const hasReply = request.reply && request.reply.trim() !== '';
+                let statusHtml = '';
                 if (hasObjection) {
-                    statusCell.innerHTML = hasReply 
-                        ? '<span class="status-indicator complete" title="Reply Generated">✔</span>'
-                        : '<span class="status-indicator pending" title="Objection Needs Reply">!</span>';
+                    statusHtml = hasReply
+                        ? `<span class="status-indicator complete" title="Reply Generated">✔</span> `
+                        : `<span class="status-indicator pending" title="Objection Needs Reply">!</span> `;
                 }
-                row.appendChild(statusCell);
-
-                // Cell 2: Request Number
-                const numberCell = document.createElement('td');
-                numberCell.className = 'col-number';
-                numberCell.textContent = request.id; // Correct data
+                numberCell.innerHTML = statusHtml + request.id;
+            
+                // Cell 2: Request Summary
+                requestCell.textContent = summary(request.text, 100);
+            
+                // Cell 3: Objection Summary
+                objectionCell.textContent = summary(request.objection, 120);
+            
+                // Append cells to the row in the correct order
                 row.appendChild(numberCell);
-                
-                // Cell 3: Your Request (Summary)
-                const requestCell = document.createElement('td');
-                requestCell.className = 'col-request';
-                requestCell.textContent = summary(request.text, 100); // Correct data: `request.text`
                 row.appendChild(requestCell);
-                
-                // Cell 4: Opponent's Objection
-                const objectionCell = document.createElement('td');
-                objectionCell.className = 'col-objection';
-                objectionCell.textContent = summary(request.objection, 120); // Correct data: `request.objection`
                 row.appendChild(objectionCell);
-                
-                // Add the finished, safe row to the table
+            
+                // Add the finished, correct row to the table
                 tableBody.appendChild(row);
-            });            
+            });
 
 
             if (caseData.requests.length === 0) {
