@@ -10,49 +10,64 @@ const pdf = require('pdf-parse'); // Add the new library
 
 // In main.js, REPLACE the old standardResponses object with this new one:
 
+// In main.js, replace your old objectionLibrary with this new one.
+
 const objectionLibrary = {
-  "vague": {
-    argument: "The objection is a conclusory boilerplate allegation. A party objecting on the grounds of vagueness must explain the specific ways in which a request is vague.",
-    cases: [
-      "See, e.g., Moss v. Blue Cross & Blue Shield of Kan., Inc., 241 F.R.D. 683, 696 (D.Kan.2007)",
-      "Milinazzo v. State Farm Ins. Co., 247 F.R.D. 691, 695 (S.D.Fla.2007)"
-    ]
-  },
-  "overly broad": {
-    argument: "The objection is a conclusory boilerplate allegation. A party opposing discovery as allegedly overbroad bears the burden of showing why discovery should be denied.",
-    cases: [
-      "See SEC v. Brady, 238 F.R.D. 429, 437 (N.D.Tex.2006)"
-    ]
-  },
-  "overburdensome": {
-    argument: "The objection is a conclusory boilerplate allegation without any factual showing to support the claim of burdensomeness. Courts must balance the burden against the benefit of the discovery.",
-    cases: [
-      "See, e.g., Hoffman v. United Telecommunications, Inc., 117 F.R.D. 436, 438 (D.Kan.1987)"
-    ]
-  },
   "qualified response": {
-    argument: "The use of a 'subject to and without waiving' qualified response is an improper practice prohibited by the rules of procedure, as such responses are confusing, misleading, and waive the objections.",
+    argument: "Responses to discovery requests that are 'subject to' and 'without waiving objections' are improper, confusing, misleading, and without basis in the Federal Rules of Civil Procedure, and waive the objections.",
     cases: [
-      "See Fay Avenue Properties, LLC v. Travelers Property Casualty Companies of America, 2014 WL 12570974, at *1 (S.D. Cal. 2014)",
+      "Fay Avenue Properties, LLC v. Travelers Property Casualty Companies of America, 2014 WL 12570974, at *1 (S.D. Cal. 2014)",
       "Herrera v. AllianceOne Receivable Mgmt., Inc., 2016 WL 1182751, at *3 (S.D. Cal. Mar. 28, 2016)"
     ]
   },
-  "work product": {
-    argument: "The objection improperly asserts the work product doctrine without providing a privilege log or establishing that the information was prepared in anticipation of litigation.",
+  "multiple subparts": {
+    argument: "Not all subparts are 'discrete subparts' under Rule 33(a)(1). Interrogatory subparts are to be counted as one interrogatory if they are logically or factually subsumed within and necessarily related to the primary question.",
     cases: [
-      "See Rogers v. Giurbino, 288 F.R.D. 469, 487 (S.D. Cal. 2012) ('general boilerplate objections are insufficient')"
+      "Trevino v. ACB American Inc., 232 F.R.D. 612, 614 (N.D. Cal. 2006)"
     ]
   },
-  "privileged": {
-    argument: "The objection improperly asserts a privilege without providing a privilege log or providing one that is insufficient under the rules.",
-    cases: [] // You can add specific privilege cases here
+  "vague": {
+    argument: "A party making a vagueness objection bears the burden to show such vagueness or ambiguity by demonstrating that more than 'mere reason and common sense' is needed to attribute ordinary definitions to the terms.",
+    cases: [
+      "Moss v. Blue Cross & Blue Shield of Kan., Inc., 241 F.R.D. 683, 696 (D.Kan.2007)"
+    ]
   },
-  // Add other objections from your list here in the same format
-  "irrelevant": {
-    argument: "The objection is a conclusory boilerplate allegation. Plaintiff has met the threshold burden for relevance.",
+  "not limited in time or scope": {
+    argument: "The objection is a conclusory boilerplate allegation. The request is appropriately limited to the relevant time period and subject matter of the litigation.",
     cases: []
   },
-  "unclassifiable": { // The fallback
+  "third party custody": {
+    argument: "This is an invalid objection. Rule 33 imposes a duty on the responding party to secure all information available to it, including information possessed by its officers, agents, and in some cases, corporate subsidiaries.",
+    cases: [
+      "Thomas v. Cate, 715 F. Supp. 2d 1012, 1032 (E.D. Cal. 2010)",
+      "General Dynamics Corp. v. Selb Mfg. Co., 481 F.2d 1204, 1211 (8th Cir.1973)"
+    ]
+  },
+  "overly broad": {
+    argument: "A party opposing discovery as allegedly overbroad bears the burden of showing why discovery should be denied. A conclusory allegation is insufficient.",
+    cases: [
+      "SEC v. Brady, 238 F.R.D. 429, 437 (N.D.Tex.2006)"
+    ]
+  },
+  "premature/early discovery": {
+    argument: "A party must respond to interrogatories based on the information presently available and has an obligation to review appropriate materials and respond to the fullest extent possible. A reasonable effort to respond must be made.",
+    cases: [
+      "Fredrics v. City of Scottsdale, 2022 WL 60546, at *1 (D. Ariz. Jan. 6, 2022)"
+    ]
+  },
+  "unduly burdensome": {
+    argument: "To sustain an 'unduly burdensome' objection, a party must provide a factual basis for the claim. Courts must balance the burden on the interrogated party against the benefit to the discovering party.",
+    cases: [
+      "Hoffman v. United Telecommunications, Inc., 117 F.R.D. 436, 438 (D.Kan.1987)"
+    ]
+  },
+  "work product": {
+    argument: "General boilerplate objections are insufficient to assert the work product doctrine. A party must establish that the information it seeks to withhold was prepared in anticipation of litigation and provide a privilege log.",
+    cases: [
+      "Rogers v. Giurbino, 288 F.R.D. 469, 487 (S.D. Cal. 2012)"
+    ]
+  },
+  "unclassifiable": { // Fallback
     argument: "A general persuasive argument is required.",
     cases: []
   }
@@ -153,8 +168,9 @@ async function handleUploadAndProcess(event, requestsFromUI) {
 
 
 
+
 async function handleAskGemini(event, { requestText, objectionText }) {
-  console.log("Main process: Generating final response with full legal argument structure...");
+  console.log("Main process: Starting Deconstructor/Drafter pipeline...");
 
   try {
     const apiKey = process.env.GEMINI_API_KEY;
@@ -163,47 +179,70 @@ async function handleAskGemini(event, { requestText, objectionText }) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" }); // Your working model
 
-    // --- Create the "Rulebook with Case Law" for the AI ---
-    let rulesForAI = "";
-    for (const key in objectionLibrary) {
-        if (key !== "unclassifiable") {
-            const rule = objectionLibrary[key];
-            const caseList = rule.cases.length > 0 ? ` Relevant cases include: ${rule.cases.join('; ')}.` : '';
-            rulesForAI += `Rule for objections about "${key}": The core argument is: "${rule.argument}"${caseList}\n\n`;
-        }
-    }
+    // --- STEP 1: DECONSTRUCTOR AI CALL ---
+    // Identify all distinct objections made in the opponent's text block.
+    const deconstructorPrompt = `
+      Analyze the following legal objection text. Identify every distinct legal objection made from the following list: [${Object.keys(objectionLibrary).join(", ")}].
+      Return your findings as a JSON array of strings. For example: ["vague", "overly broad", "work product"].
+      Do not explain yourself. Respond ONLY with the JSON array.
 
-    // --- THE DEFINITIVE PROMPT ---
-    const finalPrompt = `
-      You are an expert legal assistant AI. Your task is to draft a single, persuasive paragraph refuting an opponent's discovery objection. You must follow a specific three-part structure.
-
-      --- RULEBOOK & STYLE GUIDE ---
-      ${rulesForAI}
-      --- END OF GUIDE ---
-
-      --- CURRENT DISPUTE ---
-      - Plaintiff's Request: "${requestText}"
-      - Defendant's Objection: "${objectionText}"
-      --- END OF DISPUTE ---
-
-      INSTRUCTIONS FOR YOUR RESPONSE:
-      Your final paragraph MUST be structured in the following three parts:
-      1.  **State the Legal Principle:** Begin by identifying the single most relevant rule from the RULEBOOK and stating its core legal argument. You MUST cite a relevant case from the rulebook if one is available.
-      2.  **Apply the Principle to the Facts:** Immediately after stating the principle, explain WHY the Defendant's Objection is improper in the context of the specific Plaintiff's Request. For example, explain how the request is actually narrow, not vague, or how the objection lacks a factual basis.
-      3.  **Demand Action:** Conclude the paragraph with a clear instruction to the opponent, such as "Please supplement your response" or "Please provide a good faith objection or produce the requested documents."
-
-      Do NOT use meta-commentary. Output ONLY the final, structured legal paragraph.
+      Objection Text to Analyze: "${objectionText}"
     `;
-    
-    // Make the single API call
-    const result = await model.generateContent(finalPrompt);
-    const response = await result.response;
-    const finalText = response.text();
 
-    return { success: true, text: finalText };
+    console.log("Deconstructor: Identifying objection types...");
+    const deconstructorResult = await model.generateContent(deconstructorPrompt);
+    const deconstructorResponseText = deconstructorResult.response.text();
+    const jsonMatch = deconstructorResponseText.match(/\[.*\]/s);
+    if (!jsonMatch) throw new Error("Deconstructor AI failed to return a valid JSON array.");
+    
+    const identifiedObjections = JSON.parse(jsonMatch[0]);
+    console.log(`Deconstructor: Found objections: ${identifiedObjections.join(', ')}`);
+
+    // --- STEP 2: DRAFTER AI CALLS ---
+    // For each identified objection, draft a specific, legally-cited refutation.
+    // We use Promise.all to run these calls concurrently for better performance.
+    console.log("Drafter: Generating individual refutation paragraphs...");
+    const draftPromises = identifiedObjections.map(objectionKey => {
+      const rule = objectionLibrary[objectionKey] || objectionLibrary["unclassifiable"];
+      
+      const drafterPrompt = `
+        You are an expert legal assistant AI. Your task is to draft a single, persuasive paragraph refuting a specific discovery objection, following a precise chain of thought.
+
+        --- RULE TO APPLY ---
+        - Objection Type: "${objectionKey}"
+        - Core Argument: "${rule.argument}"
+        - Relevant Cases: [${rule.cases.join(", ")}]
+        --- END OF RULE ---
+
+        --- DISPUTE CONTEXT ---
+        - Plaintiff's Request: "${requestText}"
+        - Full Text of Defendant's Objection: "${objectionText}"
+        --- END OF CONTEXT ---
+
+        INSTRUCTIONS:
+        1.  **State the Law:** Begin by stating the Core Argument for the specified Objection Type. You MUST cite one or more of the Relevant Cases if provided.
+        2.  **Apply to Facts:** Immediately after, explain WHY the Defendant's Objection is improper in the context of the specific Plaintiff's Request, directly refuting their reasoning.
+        3.  **Demand Action:** Conclude the paragraph with a professional instruction, like "Please supplement your response."
+        4.  **Final Output:** Provide ONLY the single, complete legal paragraph.
+
+        Draft the paragraph now.
+      `;
+
+      return model.generateContent(drafterPrompt);
+    });
+
+    const draftedResults = await Promise.all(draftPromises);
+    const draftedParagraphs = draftedResults.map(result => result.response.text());
+    console.log(`Drafter: Successfully generated ${draftedParagraphs.length} paragraphs.`);
+
+    // --- STEP 3: ASSEMBLER ---
+    // Combine the individually drafted paragraphs into one cohesive final response.
+    const finalResponse = draftedParagraphs.join('\n\n');
+
+    return { success: true, text: finalResponse };
 
   } catch (error) {
-    console.error("Error in definitive handleAskGemini flow:", error);
+    console.error("Error in Deconstructor/Drafter pipeline:", error);
     return { success: false, error: error.message };
   }
 }
