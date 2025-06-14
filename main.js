@@ -1,16 +1,12 @@
 // main.js
 
 // 1. Module Imports
-const { app, BrowserWindow, ipcMain, dialog } = require('electron'); // Add dialog
+const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const fs = require('fs'); // Add Node.js file system module
-const pdf = require('pdf-parse'); // Add the new library
-
-// In main.js, REPLACE the old standardResponses object with this new one:
-
-// In main.js, replace your old objectionLibrary with this new one.
+const fs = require('fs');
+const pdf = require('pdf-parse');
 
 const objectionLibrary = {
   "qualified response": {
@@ -74,20 +70,11 @@ const objectionLibrary = {
 };
 
 
-// Load environment variables from .env file
 require('dotenv').config();
-
-
-// In main.js, add this new function
-
-// In main.js, replace the entire upload function
-
-// In main.js, replace the entire handleUploadAndProcess function
-// In main.js, replace the entire handleUploadAndProcess function
 
 async function handleUploadAndProcess(event, requestsFromUI) {
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
-  if (!parentWindow) return; // Can't proceed without a window
+  if (!parentWindow) return;
 
   const { canceled, filePaths } = await dialog.showOpenDialog(parentWindow, {
     title: "Select Opponent's Response PDF",
@@ -99,7 +86,6 @@ async function handleUploadAndProcess(event, requestsFromUI) {
   parentWindow.focus();
 
   if (canceled || filePaths.length === 0) {
-    // Send a 'cancel' message so the UI can reset
     parentWindow.webContents.send('upload-progress', { type: 'cancel' });
     return;
   }
@@ -107,8 +93,6 @@ async function handleUploadAndProcess(event, requestsFromUI) {
   const filePath = filePaths[0];
   const totalRequests = requestsFromUI.length;
 
-  // --- START OF PROGRESS STREAM ---
-  // 1. Tell the UI we're starting and how many items there are.
   parentWindow.webContents.send('upload-progress', { type: 'start', total: totalRequests });
 
   try {
@@ -122,7 +106,6 @@ async function handleUploadAndProcess(event, requestsFromUI) {
 
     let completedCount = 0;
     for (const request of requestsFromUI) {
-      // The AI extraction logic remains the same
       const extractionPrompt = `
         You are an AI data extraction expert. Your task is to find the "RESPONSE" to a specific interrogatory in a legal document and extract ONLY the text of that response.
         --- Raw Text from Opponent's Document ---
@@ -147,7 +130,6 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       if (jsonMatch) {
         const extractedObject = JSON.parse(jsonMatch[0]);
         if (extractedObject.objection) {
-          // 2. Send an update for EACH successful item, including the data.
           parentWindow.webContents.send('upload-progress', {
             type: 'progress',
             data: extractedObject,
@@ -157,20 +139,13 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       }
     }
     
-    // 3. Tell the UI that we're all done.
     parentWindow.webContents.send('upload-progress', { type: 'complete' });
 
   } catch (error) {
     console.error("Error during file processing:", error);
-    // 4. Or, tell the UI an error happened.
     parentWindow.webContents.send('upload-progress', { type: 'error', message: error.message });
   }
 }
-
-
-
-
-// In main.js, find the handleAskGemini function
 
 async function handleAskGemini(event, { requestText, objectionText, contextText}) {
   console.log("Main process: Starting Deconstructor/Drafter pipeline...");
@@ -182,7 +157,6 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // --- STEP 1: DECONSTRUCTOR AI CALL (No changes here) ---
     const deconstructorPrompt = `
       Analyze the following legal objection text. Identify every distinct legal objection made from the following list: [${Object.keys(objectionLibrary).join(", ")}].
       Return your findings as a JSON array of strings. For example: ["vague", "overly broad", "work product"].
@@ -198,7 +172,6 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
     const identifiedObjections = JSON.parse(jsonMatch[0]);
     console.log(`Deconstructor: Found objections: ${identifiedObjections.join(', ')}`);
 
-    // --- STEP 2: DRAFTER AI CALLS (No changes here) ---
     console.log("Drafter: Generating individual refutation paragraphs...");
     const draftPromises = identifiedObjections.map(objectionKey => {
       const rule = objectionLibrary[objectionKey] || objectionLibrary["unclassifiable"];
@@ -229,7 +202,6 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
               
               Draft the paragraph now.
             `;
-      // Return both the AI call and the original key
       return model.generateContent(drafterPrompt).then(result => ({
           key: objectionKey,
           paragraph: result.response.text()
@@ -239,11 +211,7 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
     const draftedReplies = await Promise.all(draftPromises);
     console.log(`Drafter: Successfully generated ${draftedReplies.length} structured replies.`);
 
-    // Combine the individually drafted paragraphs into a single HTML string.
     const finalHtmlResponse = draftedReplies.map(reply => {
-        // Create an HTML-safe version of the paragraph
-        // THIS IS THE CORRECTED CODE BLOCK
-// It properly escapes special HTML characters to prevent the DOM from breaking.
         const safeParagraph = reply.paragraph
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
@@ -252,13 +220,12 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
           .replace(/'/g, "&#39;")
           .replace(/\n/g, '<br>');
 
-          
+        
         const header = `<strong>Refuting: '${reply.key}'</strong>`;
         
         return `<p>${header}<br>${safeParagraph}</p>`;
-    }).join('<hr style="margin: 16px 0; border: none; border-top: 1px solid #dee2e6;">'); // Use an <hr> for a visual separator.
+    }).join('<hr style="margin: 16px 0; border: none; border-top: 1px solid #dee2e6;">');
 
-    // Return an object with an 'html' key
     return { success: true, html: finalHtmlResponse };
 
   } catch (error) {
@@ -267,23 +234,81 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
   }
 }
 
-// 3. Main Window Creation
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js')
     }
   });
+
+  const menuTemplate = [
+    {
+      label: 'File',
+      submenu: [
+        { label: 'New Case', accelerator: 'CmdOrCtrl+N', click: () => { /* Placeholder */ } },
+        { label: 'Open Case...', accelerator: 'CmdOrCtrl+O', click: () => { /* Placeholder */ } },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [ { role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' } ]
+    },
+    {
+      label: 'Navigate',
+      submenu: [
+        {
+          label: 'Go Back',
+          accelerator: 'Esc',
+          click: (item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.webContents.send('menu-action', 'go-back');
+          }
+        },
+        { type: 'separator' },
+        {
+          label: 'Next Item',
+          accelerator: 'CmdOrCtrl+Right',
+          click: (item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.webContents.send('menu-action', 'nav-next');
+          }
+        },
+        {
+          label: 'Previous Item',
+          accelerator: 'CmdOrCtrl+Left',
+          click: (item, focusedWindow) => {
+            if (focusedWindow) focusedWindow.webContents.send('menu-action', 'nav-prev');
+          }
+        }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [ { role: 'reload' }, { role: 'forcereload' }, { role: 'toggledevtools' }, { type: 'separator' }, { role: 'togglefullscreen' } ]
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About',
+          click: () => {
+            dialog.showMessageBox(mainWindow, { type: 'info', title: 'About', message: 'Discovery Dispute Management Dashboard', detail: 'Version 1.0.0' });
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(menuTemplate);
+  Menu.setApplicationMenu(menu);
+
   mainWindow.loadFile('index.html');
 };
 
-// 4. Electron App Lifecycle
-
-// Register the IPC handler before the app is ready
 ipcMain.handle('ask-gemini', handleAskGemini);
-ipcMain.handle('upload-and-process', handleUploadAndProcess); // <-- ADD THIS LINE
+ipcMain.handle('upload-and-process', handleUploadAndProcess);
 
 app.whenReady().then(() => {
   createWindow();
