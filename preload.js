@@ -8,8 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Your existing function
   uploadAndProcess: (requests) => ipcRenderer.invoke('upload-and-process', requests),
 
-  // --- NEW FUNCTION ---
-  // This allows the main process to send data to the renderer process
-  // The 'callback' is a function from your index.html that will handle the result
-  onUploadComplete: (callback) => ipcRenderer.on('upload-complete', (_event, value) => callback(value))
+  // --- NEW: A listener for our progress stream ---
+  onUploadProgress: (callback) => ipcRenderer.on('upload-progress', (_event, value) => callback(value)),
+  
+  // The 'onUploadComplete' is no longer needed, so we remove it to avoid confusion.
 });

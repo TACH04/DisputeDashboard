@@ -83,13 +83,11 @@ require('dotenv').config();
 // In main.js, replace the entire upload function
 
 // In main.js, replace the entire handleUploadAndProcess function
+// In main.js, replace the entire handleUploadAndProcess function
+
 async function handleUploadAndProcess(event, requestsFromUI) {
-  console.log("Main process: Starting file upload and processing...");
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
-  if (!parentWindow) {
-      console.error("Could not find the parent window to send results to.");
-      return; // Can't proceed
-  }
+  if (!parentWindow) return; // Can't proceed without a window
 
   const { canceled, filePaths } = await dialog.showOpenDialog(parentWindow, {
     title: "Select Opponent's Response PDF",
@@ -98,15 +96,20 @@ async function handleUploadAndProcess(event, requestsFromUI) {
     filters: [{ name: 'PDF Documents', extensions: ['pdf'] }]
   });
 
-  // IMPORTANT: Immediately re-focus the window after the dialog closes.
   parentWindow.focus();
 
   if (canceled || filePaths.length === 0) {
-    // We still need to notify the front-end that nothing happened
-    parentWindow.webContents.send('upload-complete', { success: false, error: "File selection canceled." });
+    // Send a 'cancel' message so the UI can reset
+    parentWindow.webContents.send('upload-progress', { type: 'cancel' });
     return;
   }
+  
   const filePath = filePaths[0];
+  const totalRequests = requestsFromUI.length;
+
+  // --- START OF PROGRESS STREAM ---
+  // 1. Tell the UI we're starting and how many items there are.
+  parentWindow.webContents.send('upload-progress', { type: 'start', total: totalRequests });
 
   try {
     const dataBuffer = fs.readFileSync(filePath);
@@ -117,10 +120,9 @@ async function handleUploadAndProcess(event, requestsFromUI) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const extractedData = [];
-    // The rest of your AI processing loop is fine, no changes needed inside it
+    let completedCount = 0;
     for (const request of requestsFromUI) {
-      console.log(`AI is now searching for the response to Request #${request.id}`);
+      // The AI extraction logic remains the same
       const extractionPrompt = `
         You are an AI data extraction expert. Your task is to find the "RESPONSE" to a specific interrogatory in a legal document and extract ONLY the text of that response.
         --- Raw Text from Opponent's Document ---
@@ -140,26 +142,30 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       const result = await model.generateContent(extractionPrompt);
       const responseText = result.response.text();
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      
+      completedCount++;
       if (jsonMatch) {
         const extractedObject = JSON.parse(jsonMatch[0]);
         if (extractedObject.objection) {
-          extractedData.push(extractedObject);
-          console.log(`Successfully extracted objection for Request #${extractedObject.id}`);
+          // 2. Send an update for EACH successful item, including the data.
+          parentWindow.webContents.send('upload-progress', {
+            type: 'progress',
+            data: extractedObject,
+            current: completedCount
+          });
         }
       }
     }
-    console.log("AI extraction complete. Pushing data to renderer.");
-    // --- THIS IS THE KEY CHANGE ---
-    // PUSH the successful result to the front-end instead of returning it.
-    parentWindow.webContents.send('upload-complete', { success: true, data: extractedData });
+    
+    // 3. Tell the UI that we're all done.
+    parentWindow.webContents.send('upload-progress', { type: 'complete' });
 
   } catch (error) {
     console.error("Error during file processing:", error);
-    // PUSH the error to the front-end.
-    parentWindow.webContents.send('upload-complete', { success: false, error: error.message });
+    // 4. Or, tell the UI an error happened.
+    parentWindow.webContents.send('upload-progress', { type: 'error', message: error.message });
   }
 }
-
 
 
 

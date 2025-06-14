@@ -97,7 +97,48 @@
             overflow-y: auto;
             flex-grow: 1;
         }
-        
+
+        .status-bar {
+            padding: 12px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .status-processing {
+            background-color: #e9ecef; /* A light gray */
+            color: var(--text-dark);
+        }
+
+        .status-success {
+            background-color: var(--action-green);
+            color: white;
+        }
+
+        .status-error {
+            background-color: #dc3545; /* A standard red */
+            color: white;
+        }
+        /* In index.html, add this CSS inside the <style> tag */
+
+        .progress-container {
+            height: 12px;
+            background-color: #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            overflow: hidden; /* This is important */
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%; /* Start at 0 */
+            background-color: var(--primary-blue);
+            transition: width 0.4s ease; /* This creates the smooth fill animation */
+        }
+                
         .reply-content.empty { font-style: italic; color: var(--secondary-gray); }
         .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--primary-blue); animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -111,6 +152,11 @@
                 <h1>Discovery Dispute Management Dashboard</h1>
                 <h2 id="case-name">Case: Loading...</h2>
             </header>
+            <div id="status-bar" class="status-bar" style="display: none;"></div>
+            <div id="progress-container" class="progress-container" style="display: none;">
+                <div id="progress-bar" class="progress-bar"></div>
+            </div>
+            
             <div class="action-bar">
                 <button class="btn btn-primary" data-action="upload">Upload Opponent's Response</button>
                 <button class="btn btn-secondary" data-action="meet-confer">Generate Meet & Confer Letter</button>
@@ -170,29 +216,67 @@
 // In index.html, REPLACE the entire onUploadComplete listener with this.
 // This version completely removes the destructive alert() calls.
 
-window.electronAPI.onUploadComplete((result) => {
-    // A small timeout is still a good practice to ensure the event loop is clear.
-    setTimeout(() => {
-        const button = document.querySelector('[data-action="upload"]');
+let totalUploads = 0;
+window.electronAPI.onUploadProgress((result) => {
+    const statusBar = document.getElementById('status-bar');
+    const progressContainer = document.getElementById('progress-container');
+    const progressBar = document.getElementById('progress-bar');
+    const button = document.querySelector('[data-action="upload"]');
 
-        if (result.success) {
-            console.log('SUCCESS: Processing complete! Objections have been populated.'); // <-- NO ALERT
-            result.data.forEach(extracted => {
-                const requestToUpdate = caseData.requests.find(r => r.id === extracted.id);
-                if (requestToUpdate) { requestToUpdate.objection = extracted.objection; }
-            });
-            renderDashboard();
-        } else if (result.error !== "File selection canceled.") {
-            console.error(`ERROR: Processing Error - ${result.error}`); // <-- NO ALERT
-        }
+    switch (result.type) {
+        case 'start':
+            totalUploads = result.total;
+            statusBar.textContent = `Processing 1 of ${totalUploads}...`;
+            statusBar.className = 'status-bar status-processing';
+            statusBar.style.display = 'block';
+            progressBar.style.width = '0%';
+            progressContainer.style.display = 'block';
+            break;
 
-        if (button) {
+        case 'progress':
+            // Update the data for the specific request
+            const requestToUpdate = caseData.requests.find(r => r.id === result.data.id);
+            if (requestToUpdate) {
+                requestToUpdate.objection = result.data.objection;
+            }
+            renderDashboard(); // Re-render the table to show the new objection immediately
+
+            // Update the UI
+            const percentage = (result.current / totalUploads) * 100;
+            progressBar.style.width = `${percentage}%`;
+            statusBar.textContent = `Processing ${result.current + 1 > totalUploads ? totalUploads : result.current + 1} of ${totalUploads}...`;
+            break;
+
+        case 'complete':
+            statusBar.textContent = 'Processing complete! All objections extracted.';
+            statusBar.className = 'status-bar status-success';
+            progressBar.style.width = '100%';
             button.disabled = false;
-            button.textContent = "Upload Opponent's Response";
+            button.innerHTML = "Upload Opponent's Response";
             button.focus();
-        }
-    }, 100); 
+            setTimeout(() => { // Hide everything after a few seconds
+                statusBar.style.display = 'none';
+                progressContainer.style.display = 'none';
+            }, 5000);
+            break;
+
+        case 'error':
+            statusBar.textContent = `Error: ${result.message}`;
+            statusBar.className = 'status-bar status-error';
+            button.disabled = false;
+            button.innerHTML = "Upload Opponent's Response";
+            break;
+        
+        case 'cancel':
+            // User hit cancel on the file dialog, reset the UI
+            button.disabled = false;
+            button.innerHTML = "Upload Opponent's Response";
+            statusBar.style.display = 'none';
+            progressContainer.style.display = 'none';
+            break;
+    }
 });
+
         
         
         function renderDashboard() {
@@ -327,8 +411,8 @@ window.electronAPI.onUploadComplete((result) => {
                 case 'upload': {
                     const button = event.target.closest('button');
                     button.disabled = true;
-                    button.innerHTML = '<div class="loading-spinner"></div> Processing...';
-                    // Just FIRE the event. Don't wait for it. The listener above will handle the result.
+                    button.innerHTML = '<div class="loading-spinner"></div> Preparing...';
+                    // Just fire the event. The listener above will handle all UI changes.
                     window.electronAPI.uploadAndProcess(caseData.requests);
                     break;
                 }
