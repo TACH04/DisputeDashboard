@@ -82,87 +82,82 @@ require('dotenv').config();
 
 // In main.js, replace the entire upload function
 
+// In main.js, replace the entire handleUploadAndProcess function
 async function handleUploadAndProcess(event, requestsFromUI) {
   console.log("Main process: Starting file upload and processing...");
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWindow) {
+      console.error("Could not find the parent window to send results to.");
+      return; // Can't proceed
+  }
 
-  // 1. Open File Dialog
-  // The corrected call inside the handleUploadAndProcess function
-  const { canceled, filePaths } = await dialog.showOpenDialog({
-      title: "Select Opponent's Response PDF",
-      buttonLabel: "Upload and Process",
-      properties: ['openFile'],
-      filters: [
-          { name: 'PDF Documents', extensions: ['pdf'] }
-      ]
+  const { canceled, filePaths } = await dialog.showOpenDialog(parentWindow, {
+    title: "Select Opponent's Response PDF",
+    buttonLabel: "Upload and Process",
+    properties: ['openFile'],
+    filters: [{ name: 'PDF Documents', extensions: ['pdf'] }]
   });
 
+  // IMPORTANT: Immediately re-focus the window after the dialog closes.
+  parentWindow.focus();
+
   if (canceled || filePaths.length === 0) {
-      return { success: false, error: "File selection canceled." };
-    }
-    const filePath = filePaths[0];
+    // We still need to notify the front-end that nothing happened
+    parentWindow.webContents.send('upload-complete', { success: false, error: "File selection canceled." });
+    return;
+  }
+  const filePath = filePaths[0];
 
-    try {
-      // 2. Read and Parse PDF
-      const dataBuffer = fs.readFileSync(filePath);
-      const pdfData = await pdf(dataBuffer);
-      const rawText = pdfData.text;
+  try {
+    const dataBuffer = fs.readFileSync(filePath);
+    const pdfData = await pdf(dataBuffer);
+    const rawText = pdfData.text;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("API key not found.");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-      // 3. Initialize AI
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) throw new Error("API key not found.");
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
-      // --- NEW LOGIC: Process requests one by one ---
-      const extractedData = [];
-      for (const request of requestsFromUI) {
-        console.log(`AI is now searching for the response to Request #${request.id}`);
-        
-
-        // In main.js, inside the handleUploadAndProcess loop
-
-        const extractionPrompt = `
-          You are an AI data extraction expert. Your task is to find the "RESPONSE" to a specific interrogatory in a legal document and extract ONLY the text of that response.
-
-          --- Raw Text from Opponent's Document ---
-          ${rawText}
-          --- End of Raw Text ---
-
-          --- Specific Request to Find ---
-          Find the section that responds to Interrogatory Number ${request.id}.
-          --- End of Specific Request ---
-
-          INSTRUCTIONS:
-          1.  Locate the section for Interrogatory Number ${request.id} in the "Raw Text".
-          2.  Find the "RESPONSE:" or "Objection." label that follows it.
-          3.  **Extract ONLY the text that comes AFTER that label.** Do NOT include the original interrogatory text.
-          4.  Return a single JSON object with two keys: "id" (the number ${request.id}) and "objection" (the extracted response/objection text as a string).
-          5.  If no response is found, return an object where "objection" is null.
-
-          Provide ONLY the single JSON object as your response.
-        `;
-
-        const result = await model.generateContent(extractionPrompt);
-        const responseText = result.response.text();
-        
-        // Clean up the AI's response to ensure it's valid JSON
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const extractedObject = JSON.parse(jsonMatch[0]);
-          if (extractedObject.objection) { // Only add if an objection was actually found
-              extractedData.push(extractedObject);
-              console.log(`Successfully extracted objection for Request #${extractedObject.id}`);
-          }
+    const extractedData = [];
+    // The rest of your AI processing loop is fine, no changes needed inside it
+    for (const request of requestsFromUI) {
+      console.log(`AI is now searching for the response to Request #${request.id}`);
+      const extractionPrompt = `
+        You are an AI data extraction expert. Your task is to find the "RESPONSE" to a specific interrogatory in a legal document and extract ONLY the text of that response.
+        --- Raw Text from Opponent's Document ---
+        ${rawText}
+        --- End of Raw Text ---
+        --- Specific Request to Find ---
+        Find the section that responds to Interrogatory Number ${request.id}.
+        --- End of Specific Request ---
+        INSTRUCTIONS:
+        1.  Locate the section for Interrogatory Number ${request.id} in the "Raw Text".
+        2.  Find the "RESPONSE:" or "Objection." label that follows it.
+        3.  **Extract ONLY the text that comes AFTER that label.** Do NOT include the original interrogatory text.
+        4.  Return a single JSON object with two keys: "id" (the number ${request.id}) and "objection" (the extracted response/objection text as a string).
+        5.  If no response is found, return an object where "objection" is null.
+        Provide ONLY the single JSON object as your response.
+      `;
+      const result = await model.generateContent(extractionPrompt);
+      const responseText = result.response.text();
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const extractedObject = JSON.parse(jsonMatch[0]);
+        if (extractedObject.objection) {
+          extractedData.push(extractedObject);
+          console.log(`Successfully extracted objection for Request #${extractedObject.id}`);
         }
       }
-      
-      console.log("AI extraction complete. Final data:", extractedData);
-      return { success: true, data: extractedData };
-
-    } catch (error) {
-      console.error("Error during file processing:", error);
-      return { success: false, error: error.message };
     }
+    console.log("AI extraction complete. Pushing data to renderer.");
+    // --- THIS IS THE KEY CHANGE ---
+    // PUSH the successful result to the front-end instead of returning it.
+    parentWindow.webContents.send('upload-complete', { success: true, data: extractedData });
+
+  } catch (error) {
+    console.error("Error during file processing:", error);
+    // PUSH the error to the front-end.
+    parentWindow.webContents.send('upload-complete', { success: false, error: error.message });
+  }
 }
 
 

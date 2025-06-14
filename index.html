@@ -166,6 +166,34 @@
             requests: [ { id: 1, text: "For each employee or agent of Wexford... affirm or deny whether that person will testify about any spoken statements allegedly made by Amanda Gardner...", objection: null, reply: null }, { id: 2, text: "Identify all spoken or written statements made by each employee or agent of Wexford... regarding the treatment of Amanda Gardner.", objection: null, reply: null }, { id: 3, text: "Under the contract by which Wexford undertook to provide medical care... describe which entities were responsible for the cost of medical services...", objection: null, reply: null }, { id: 4, text: "Identify the average number of patients in the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null }, { id: 5, text: "Identify all Wexford employees, agents, or independent contractors hired by Wexford who provided medical services at the Navajo County Jail...", objection: null, reply: null }, { id: 6, text: "Identify every written protocol or policy in effect at the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null }, { id: 7, text: "Identify any entry or omission in the medical chart of Amanda Gardner that fails to conform to Wexford's policy on documentation.", objection: null, reply: null }, { id: 8, text: "Describe all communications with Navajo County Sheriff's Office detention staff about Amanda Gardner's health needs and transport.", objection: null, reply: null }, { id: 9, text: "Identify the principal or material facts you believe support any of the following defenses: (a) Plaintiff has failed to state a claim...", objection: null, reply: null }, { id: 10, text: "Identify the principal or material facts not mentioned in your response to Non-Uniform Interrogatory #9 that you believe support any other defense you are claiming.", objection: null, reply: null }, { id: 11, text: "Identify whether the care Wexford provided to Amanda Gardner... was performed in accordance with Wexford's national policy, practices, and training.", objection: null, reply: null }, { id: 12, text: "If you contend that any party or anyone else... is at fault for causing injuries to Amanda Gardner, describe the primary material facts that support your contention...", objection: null, reply: null }, { id: 13, text: "Have you ever had any communications from Navajo County or Navajo County Sheriff's Office criticizing your provision of correctional healthcare...", objection: null, reply: null }, { id: 14, text: "For each witness you have identified... affirm or deny they have provided prior testimony under oath related to medical care.", objection: null, reply: null } ]
         };
         const replyEditor = document.getElementById('focus-reply-editor');
+
+// In index.html, REPLACE the entire onUploadComplete listener with this.
+// This version completely removes the destructive alert() calls.
+
+window.electronAPI.onUploadComplete((result) => {
+    // A small timeout is still a good practice to ensure the event loop is clear.
+    setTimeout(() => {
+        const button = document.querySelector('[data-action="upload"]');
+
+        if (result.success) {
+            console.log('SUCCESS: Processing complete! Objections have been populated.'); // <-- NO ALERT
+            result.data.forEach(extracted => {
+                const requestToUpdate = caseData.requests.find(r => r.id === extracted.id);
+                if (requestToUpdate) { requestToUpdate.objection = extracted.objection; }
+            });
+            renderDashboard();
+        } else if (result.error !== "File selection canceled.") {
+            console.error(`ERROR: Processing Error - ${result.error}`); // <-- NO ALERT
+        }
+
+        if (button) {
+            button.disabled = false;
+            button.textContent = "Upload Opponent's Response";
+            button.focus();
+        }
+    }, 100); 
+});
+        
         
         function renderDashboard() {
             document.getElementById('case-name').textContent = `Case: ${caseData.caseName}`;
@@ -283,6 +311,8 @@
             }
         }
 
+        
+
         renderDashboard();
         document.body.addEventListener('click', async (event) => {
             const dashboardRow = event.target.closest('#table-body tr');
@@ -293,31 +323,19 @@
                 case 'focus-next': navigateFocus(1); break;
                 case 'focus-prev': navigateFocus(-1); break;
                 case 'focus-generate': generateRepliesForFocus(); break;
+
                 case 'upload': {
                     const button = event.target.closest('button');
                     button.disabled = true;
                     button.innerHTML = '<div class="loading-spinner"></div> Processing...';
-                    try {
-                        const result = await window.electronAPI.uploadAndProcess(caseData.requests);
-                        if (result.success) {
-                            result.data.forEach(extracted => {
-                                const requestToUpdate = caseData.requests.find(r => r.id === extracted.id);
-                                if (requestToUpdate) { requestToUpdate.objection = extracted.objection; }
-                            });
-                            renderDashboard();
-                            alert('Processing complete! Objections have been populated.');
-                        } else if (result.error !== "File selection canceled.") { alert(`Processing Error: ${result.error}`); }
-                    } catch (error) {
-                        alert(`A critical error occurred during upload: ${error.message}`);
-                        console.error("Upload Error:", error);
-                    } finally {
-                        button.disabled = false;
-                        button.textContent = "Upload Opponent's Response";
-                    }
+                    // Just FIRE the event. Don't wait for it. The listener above will handle the result.
+                    window.electronAPI.uploadAndProcess(caseData.requests);
                     break;
                 }
             }
         });
+        
+        
         document.addEventListener('keydown', (event) => {
             if (!document.body.classList.contains('focus-mode-active')) return;
             if (event.key === 'ArrowRight') navigateFocus(1);
