@@ -133,7 +133,8 @@ async function handleUploadAndProcess(event, requestsFromUI) {
           parentWindow.webContents.send('upload-progress', {
             type: 'progress',
             data: extractedObject,
-            current: completedCount
+            current: completedCount,
+            total: totalRequests
           });
         }
       }
