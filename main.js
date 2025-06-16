@@ -91,60 +91,146 @@ async function handleUploadAndProcess(event, requestsFromUI) {
   }
   
   const filePath = filePaths[0];
-  const totalRequests = requestsFromUI.length;
-
-  parentWindow.webContents.send('upload-progress', { type: 'start', total: totalRequests });
 
   try {
+    // Phase 1: Reading PDF (0-20%)
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'progress',
+      stage: 'reading',
+      message: 'Reading PDF file...',
+      progress: 0
+    });
+
     const dataBuffer = fs.readFileSync(filePath);
     const pdfData = await pdf(dataBuffer);
     const rawText = pdfData.text;
+
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'progress',
+      stage: 'reading',
+      message: 'PDF file read successfully.',
+      progress: 20
+    });
+
+    // Phase 2: Text preprocessing (20-35%)
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'progress',
+      stage: 'preparing',
+      message: 'Preprocessing document text...',
+      progress: 25
+    });
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("API key not found.");
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    let completedCount = 0;
-    for (const request of requestsFromUI) {
-      const extractionPrompt = `
-        You are an AI data extraction expert. Your task is to find the "RESPONSE" to a specific interrogatory in a legal document and extract ONLY the text of that response.
-        --- Raw Text from Opponent's Document ---
-        ${rawText}
-        --- End of Raw Text ---
-        --- Specific Request to Find ---
-        Find the section that responds to Interrogatory Number ${request.id}.
-        --- End of Specific Request ---
-        INSTRUCTIONS:
-        1.  Locate the section for Interrogatory Number ${request.id} in the "Raw Text".
-        2.  Find the "RESPONSE:" or "Objection." label that follows it.
-        3.  **Extract ONLY the text that comes AFTER that label.** Do NOT include the original interrogatory text.
-        4.  Return a single JSON object with two keys: "id" (the number ${request.id}) and "objection" (the extracted response/objection text as a string).
-        5.  If no response is found, return an object where "objection" is null.
-        Provide ONLY the single JSON object as your response.
-      `;
-      const result = await model.generateContent(extractionPrompt);
-      const responseText = result.response.text();
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-      
-      completedCount++;
-      if (jsonMatch) {
-        const extractedObject = JSON.parse(jsonMatch[0]);
-        if (extractedObject.objection) {
-          parentWindow.webContents.send('upload-progress', {
-            type: 'progress',
-            data: extractedObject,
-            current: completedCount,
-            total: totalRequests
-          });
-        }
+    // Create a structured format of the requests for the AI
+    const requestsFormatted = requestsFromUI.map(req => 
+      `Request ${req.id}: ${req.text}`
+    ).join('\n\n');
+
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'progress',
+      stage: 'preparing',
+      message: 'Document prepared for analysis.',
+      progress: 35
+    });
+
+    // Phase 3: AI Analysis (35-85%)
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'progress',
+      stage: 'processing',
+      message: 'Starting AI analysis...',
+      progress: 35
+    });
+
+    const extractionPrompt = `
+      You are an AI data extraction expert. Your task is to find objections to specific interrogatory requests in a legal document.
+
+      --- Original Requests ---
+      ${requestsFormatted}
+      --- End of Original Requests ---
+
+      --- Raw Text from Opponent's Response Document ---
+      ${rawText}
+      --- End of Raw Text ---
+
+      INSTRUCTIONS:
+      1. For each numbered request above, find the corresponding objection/response in the opponent's document.
+      2. Return a JSON array of objects, where each object has:
+         - "id": the request number (as a number)
+         - "objection": the complete text of the objection/response for that specific request
+      3. If no objection is found for a request, set "objection" to null
+      4. Ensure each objection is matched to the correct request number
+      5. Include ONLY the actual objection text, not the original request text
+      6. Maintain the exact wording of each objection
+
+      Return ONLY the JSON array.
+    `;
+
+    // Update progress during AI processing
+    const progressUpdates = [
+      { progress: 45, message: 'Analyzing document structure...' },
+      { progress: 55, message: 'Identifying request sections...' },
+      { progress: 65, message: 'Locating objection responses...' },
+      { progress: 75, message: 'Extracting objection text...' },
+      { progress: 85, message: 'Finalizing matches...' }
+    ];
+
+    let currentUpdateIndex = 0;
+    const progressInterval = setInterval(() => {
+      if (currentUpdateIndex < progressUpdates.length) {
+        const update = progressUpdates[currentUpdateIndex];
+        parentWindow.webContents.send('upload-progress', {
+          type: 'progress',
+          stage: 'processing',
+          message: update.message,
+          progress: update.progress
+        });
+        currentUpdateIndex++;
       }
-    }
+    }, 2000); // Update every 2 seconds
+
+    const result = await model.generateContent(extractionPrompt);
+    clearInterval(progressInterval);
+
+    // Phase 4: Final Processing (85-100%)
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'progress',
+      stage: 'finalizing',
+      message: 'Processing extracted objections...',
+      progress: 85
+    });
+
+    const responseText = result.response.text();
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
     
-    parentWindow.webContents.send('upload-progress', { type: 'complete' });
+    if (jsonMatch) {
+      const extractedObjections = JSON.parse(jsonMatch[0]);
+      
+      parentWindow.webContents.send('upload-progress', { 
+        type: 'progress',
+        stage: 'finalizing',
+        message: 'Validating extracted data...',
+        progress: 95
+      });
+
+      // Send all results at once
+      parentWindow.webContents.send('upload-progress', { 
+        type: 'complete',
+        data: extractedObjections
+      });
+    } else {
+      throw new Error("Failed to extract objections from the document.");
+    }
 
   } catch (error) {
     console.error("Error during file processing:", error);
-    parentWindow.webContents.send('upload-progress', { type: 'error', message: error.message });
+    parentWindow.webContents.send('upload-progress', { 
+      type: 'error', 
+      message: error.message 
+    });
   }
 }
 
@@ -235,6 +321,113 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
   }
 }
 
+async function handleRequestLetterUpload(event) {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWindow) return;
+
+  const { canceled, filePaths } = await dialog.showOpenDialog(parentWindow, {
+    title: "Select Request Letter PDF",
+    buttonLabel: "Upload and Process",
+    properties: ['openFile'],
+    filters: [{ name: 'PDF Documents', extensions: ['pdf'] }]
+  });
+
+  parentWindow.focus();
+
+  if (canceled || filePaths.length === 0) {
+    parentWindow.webContents.send('request-progress', { type: 'cancel' });
+    return;
+  }
+  
+  const filePath = filePaths[0];
+
+  try {
+    // Update progress: Starting file read
+    parentWindow.webContents.send('request-progress', { 
+      type: 'progress',
+      stage: 'reading',
+      message: 'Reading PDF file...',
+      progress: 0
+    });
+
+    const dataBuffer = fs.readFileSync(filePath);
+    const pdfData = await pdf(dataBuffer);
+    const rawText = pdfData.text;
+
+    // Update progress: PDF read complete
+    parentWindow.webContents.send('request-progress', { 
+      type: 'progress',
+      stage: 'preparing',
+      message: 'Preparing for analysis...',
+      progress: 25
+    });
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("API key not found.");
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    // Update progress: Starting AI processing
+    parentWindow.webContents.send('request-progress', { 
+      type: 'progress',
+      stage: 'processing',
+      message: 'Analyzing document with AI...',
+      progress: 50
+    });
+
+    const extractionPrompt = `
+      You are an AI data extraction expert. Your task is to extract interrogatory requests from a legal document.
+      
+      --- Raw Text from Request Document ---
+      ${rawText}
+      --- End of Raw Text ---
+      
+      INSTRUCTIONS:
+      1. Find all interrogatory requests in the document.
+      2. For each request:
+         - Extract the request number
+         - Extract the complete text of the request
+      3. Return a JSON array of objects, where each object has:
+         - "id": the request number (as a number)
+         - "text": the complete text of the request
+      4. Include ONLY actual interrogatory requests.
+      5. Maintain the exact wording of each request.
+      
+      Return ONLY the JSON array.
+    `;
+
+    const result = await model.generateContent(extractionPrompt);
+    
+    // Update progress: AI processing complete
+    parentWindow.webContents.send('request-progress', { 
+      type: 'progress',
+      stage: 'finalizing',
+      message: 'Finalizing results...',
+      progress: 75
+    });
+
+    const responseText = result.response.text();
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    
+    if (jsonMatch) {
+      const extractedRequests = JSON.parse(jsonMatch[0]);
+      parentWindow.webContents.send('request-progress', { 
+        type: 'complete',
+        data: extractedRequests
+      });
+    } else {
+      throw new Error("Failed to extract requests from the document.");
+    }
+
+  } catch (error) {
+    console.error("Error during request letter processing:", error);
+    parentWindow.webContents.send('request-progress', { 
+      type: 'error', 
+      message: error.message 
+    });
+  }
+}
+
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1200,
@@ -310,6 +503,7 @@ const createWindow = () => {
 
 ipcMain.handle('ask-gemini', handleAskGemini);
 ipcMain.handle('upload-and-process', handleUploadAndProcess);
+ipcMain.handle('upload-request-letter', handleRequestLetterUpload);
 
 app.whenReady().then(() => {
   createWindow();

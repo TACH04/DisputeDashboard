@@ -26,7 +26,7 @@
         
         /* --- START: CORRECTED VIEW-SWITCHING LOGIC --- */
         /* By default, all top-level views are hidden. */
-        #cases-dashboard-view, #dispute-list-view, #focus-view { 
+        #cases-dashboard-view, #dispute-list-view, #focus-view, #request-letters-view { 
             display: none; 
             width: 100%;
             height: 100vh;
@@ -37,6 +37,7 @@
         body.cases-view-active #cases-dashboard-view { display: block; }
         body.dispute-list-active #dispute-list-view { display: block; }
         body.focus-mode-active #focus-view { display: flex; flex-direction: column; }
+        body.request-letters-active #request-letters-view { display: block; }
         /* --- END: CORRECTED VIEW-SWITCHING LOGIC --- */
 
         /* --- SHARED STYLES --- */
@@ -53,6 +54,69 @@
         .btn-action:hover { background-color: #157347; }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
+        /* --- PROGRESS INDICATORS --- */
+        .progress-section {
+            margin: 20px 0;
+            opacity: 0;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+        .progress-section.visible {
+            opacity: 1;
+            max-height: 100px;
+            margin: 20px 0;
+        }
+        .status-bar {
+            padding: 12px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: 500;
+            background-color: #e9ecef;
+            color: var(--text-dark);
+        }
+        .status-bar.status-processing { background-color: #e9ecef; color: var(--text-dark); }
+        .status-bar.status-success { background-color: var(--action-green); color: white; }
+        .status-bar.status-error { background-color: #dc3545; color: white; }
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary-blue);
+            transition: width 0.4s ease;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: var(--primary-blue);
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- ACTION BAR --- */
+        .action-bar {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            align-items: center;
+            background-color: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
         /* --- CASES DASHBOARD VIEW --- */
         #cases-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
         .case-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; }
@@ -61,7 +125,6 @@
         .case-card p { color: var(--secondary-gray); }
 
         /* --- DISPUTE LIST VIEW --- */
-        .action-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         .table-container { background-color: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
         .dispute-table { width: 100%; border-collapse: collapse; min-width: 1200px; }
         .dispute-table th, .dispute-table td { padding: 16px; border-bottom: 1px solid var(--border-color); vertical-align: top; text-align: left; }
@@ -69,14 +132,6 @@
         .dispute-table tbody tr { cursor: pointer; }
         .dispute-table tbody tr:hover { background-color: #e9ecef; }
         .col-number { width: 5%; } .col-request { width: 35%; } .col-objection { width: 60%; }
-        .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.1); border-radius: 50%; border-top-color: var(--primary-blue); animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .progress-container { width: 100%; height: 12px; background-color: #e9ecef; border-radius: 6px; margin-top: 5px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0,0,0,0.1); }
-        .progress-bar { height: 100%; width: 0%; background-color: var(--primary-blue); transition: width 0.4s ease; }
-        .status-bar { padding: 12px; margin-bottom: 20px; border-radius: 6px; text-align: center; font-weight: 500; }
-        .status-processing { background-color: #e9ecef; color: var(--text-dark); }
-        .status-success { background-color: var(--action-green); color: white; }
-        .status-error { background-color: #dc3545; color: white; }
 
         /* --- START: RIGID FOCUS VIEW LAYOUT --- */
         .focus-container {
@@ -163,22 +218,56 @@
         </div>
     </div>
 
-    <!-- VIEW 2: DISPUTE LIST (FOR A SINGLE CASE) -->
+    <!-- VIEW 2: REQUEST LETTERS MENU -->
+    <div id="request-letters-view">
+        <div class="container">
+            <header>
+                <h1 id="request-letters-header">Case Name</h1>
+                <h2>Select a request letter to analyze.</h2>
+            </header>
+            <div class="action-bar">
+                <button class="btn btn-secondary" data-action="back-to-cases">← Back to All Cases</button>
+                <button class="btn btn-primary" data-action="upload-request">Upload New Request Letter</button>
+            </div>
+            <div class="progress-section" id="request-progress-section">
+                <div id="request-status-bar" class="status-bar"></div>
+                <div id="request-progress-container" class="progress-container">
+                    <div id="request-progress-bar" class="progress-bar"></div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="dispute-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 20%">Date Added</th>
+                            <th style="width: 50%">Description</th>
+                            <th style="width: 15%">Requests</th>
+                            <th style="width: 15%">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="request-letters-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIEW 3: DISPUTE LIST (FOR A SINGLE REQUEST LETTER) -->
     <div id="dispute-list-view">
         <div class="container">
             <header>
                 <h1 id="case-name-header">Case Name</h1>
                 <h2 id="case-subtitle">Manage discovery disputes for this case.</h2>
             </header>
-            <div id="status-bar" class="status-bar" style="display: none;"></div>
-            <div id="progress-container" class="progress-container" style="display: none;">
-                <div id="progress-bar" class="progress-bar"></div>
-            </div>
             <div class="action-bar">
-                <button class="btn btn-secondary" data-action="back-to-cases">← Back to All Cases</button>
+                <button class="btn btn-secondary" data-action="back-to-letters">← Back to Request Letters</button>
                 <button class="btn btn-primary" data-action="upload">Upload Opponent's Response</button>
-                <!-- NEW BUTTON ADDED HERE -->
                 <button class="btn btn-action" data-action="generate-all">Generate All Pending Replies</button>
+            </div>
+            <div class="progress-section" id="dispute-progress-section">
+                <div id="dispute-status-bar" class="status-bar"></div>
+                <div id="dispute-progress-container" class="progress-container">
+                    <div id="dispute-progress-bar" class="progress-bar"></div>
+                </div>
             </div>
             <div class="table-container">
                 <table class="dispute-table">
@@ -195,7 +284,7 @@
         </div>
     </div>
 
-    <!-- VIEW 3: FOCUS VIEW (FOR A SINGLE DISPUTE) -->
+    <!-- VIEW 4: FOCUS VIEW (FOR A SINGLE DISPUTE) -->
     <div id="focus-view">
         <div class="focus-container">
             <div class="focus-header">
@@ -212,28 +301,68 @@
             </div>
         </div>
     </div>
-    <script>
+    <script type="text/javascript">
         // --- DATA STORE ---
-        let appData = {
+        const initialData = {
             cases: [
                 {
                     caseId: 'gardner-navajo',
                     caseName: "Gardner v. Navajo County, et al.",
-                    requests: [ { id: 1, text: "For each employee or agent of Wexford... affirm or deny whether that person will testify about any spoken statements allegedly made by Amanda Gardner...", objection: null, reply: null }, { id: 2, text: "Identify all spoken or written statements made by each employee or agent of Wexford... regarding the treatment of Amanda Gardner.", objection: "Objection. Plaintiff's Interrogatory contains multiple subparts, is not limited in time or scope, and requests information...", reply: null }, { id: 3, text: "Under the contract by which Wexford undertook to provide medical care... describe which entities were responsible for the cost of medical services...", objection: "Objection. Plaintiff's interrogatory is unduly burdensome and calls for information that is a public record. Without...", reply: null }, { id: 4, text: "Identify the average number of patients in the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: "Objection. Plaintiff's interrogatory is not limited in time or scope, and is vague as the term “patients” is not...", reply: null }, { id: 5, text: "Identify all Wexford employees, agents, or independent contractors hired by Wexford who provided medical services at the Navajo County Jail...", objection: "Objection. Plaintiff's Interrogatory is not limited in time and scope, reasonably calls for...", reply: null }, { id: 6, text: "Identify every written protocol or policy in effect at the Navajo County Adult Detention Facility during Wexford's work at the facility.", objection: null, reply: null }, { id: 7, text: "Identify any entry or omission in the medical chart of Amanda Gardner that fails to conform to Wexford's policy on documentation.", objection: null, reply: null }, { id: 8, text: "Describe all communications with Navajo County Sheriff's Office detention staff about Amanda Gardner's health needs and transport.", objection: null, reply: null }, { id: 9, text: "Identify the principal or material facts you believe support any of the following defenses: (a) Plaintiff has failed to state a claim...", objection: null, reply: null }, { id: 10, text: "Identify the principal or material facts not mentioned in your response to Non-Uniform Interrogatory #9 that you believe support any other defense you are claiming.", objection: null, reply: null }, { id: 11, text: "Identify whether the care Wexford provided to Amanda Gardner... was performed in accordance with Wexford's national policy, practices, and training.", objection: null, reply: null }, { id: 12, text: "If you contend that any party or anyone else... is at fault for causing injuries to Amanda Gardner, describe the primary material facts that support your contention...", objection: null, reply: null }, { id: 13, text: "Have you ever had any communications from Navajo County or Navajo County Sheriff's Office criticizing your provision of correctional healthcare...", objection: null, reply: null }, { id: 14, text: "Identify for each witness you have identified... affirm or deny they have provided prior testimony under oath related to medical care.", objection: null, reply: null } ]
+                    requestLetters: [
+                        {
+                            id: 'rog-set1',
+                            dateAdded: '2024-03-15',
+                            description: 'First Set of Interrogatories to Defendant Wexford',
+                            requests: [
+                                {
+                                    id: 1,
+                                    text: "For each employee or agent of Wexford... affirm or deny whether that person will testify about any spoken statements allegedly made by Amanda Gardner...",
+                                    objection: null,
+                                    reply: null
+                                },
+                                {
+                                    id: 2,
+                                    text: "Identify all spoken or written statements made by each employee or agent of Wexford... regarding the treatment of Amanda Gardner.",
+                                    objection: "Objection. Plaintiff's Interrogatory contains multiple subparts, is not limited in time or scope, and requests information...",
+                                    reply: null
+                                }
+                            ]
+                        }
+                    ]
                 },
                 {
                     caseId: 'acme-vs-wile',
                     caseName: "Acme Corp. v. Wile E. Coyote",
-                    requests: [
-                        { id: 1, text: "Identify all rocket-powered devices purchased...", objection: "Overly broad.", reply: null },
-                        { id: 2, text: "Describe the intended use of the 'Giant Rubber Band'...", objection: null, reply: null },
+                    requestLetters: [
+                        {
+                            id: 'rog-set1',
+                            dateAdded: '2024-03-10',
+                            description: 'First Set of Interrogatories',
+                            requests: [
+                                {
+                                    id: 1,
+                                    text: "Identify all rocket-powered devices purchased...",
+                                    objection: "Overly broad.",
+                                    reply: null
+                                },
+                                {
+                                    id: 2,
+                                    text: "Describe the intended use of the 'Giant Rubber Band'...",
+                                    objection: null,
+                                    reply: null
+                                }
+                            ]
+                        }
                     ]
                 }
             ]
         };
         
+        let appData = JSON.parse(JSON.stringify(initialData));
+        
         // --- STATE MANAGEMENT ---
         let currentCaseId = null;
+        let currentLetterId = null;
         let currentFocusIndex = -1;
 
         // --- VIEW SWITCHING & RENDERING ---
@@ -242,8 +371,15 @@
             renderCasesDashboard();
         }
 
-        function showDisputeListView(caseId) {
+        function showRequestLettersView(caseId) {
             currentCaseId = caseId;
+            currentLetterId = null;
+            document.body.className = 'request-letters-active';
+            renderRequestLettersView();
+        }
+
+        function showDisputeListView(letterId) {
+            currentLetterId = letterId;
             document.body.className = 'dispute-list-active';
             renderDisputeListView();
         }
@@ -258,70 +394,151 @@
             const grid = document.getElementById('cases-grid');
             grid.innerHTML = '';
             appData.cases.forEach(c => {
-                const unresolved = c.requests.filter(r => r.objection && !r.reply).length;
-                const total = c.requests.length;
+                const allRequests = c.requestLetters.reduce((acc, letter) => acc + letter.requests.length, 0);
+                const unresolvedCount = c.requestLetters.reduce((acc, letter) => {
+                    return acc + letter.requests.filter(r => r.objection && !r.reply).length;
+                }, 0);
+                
                 const card = document.createElement('div');
                 card.className = 'case-card';
                 card.dataset.caseId = c.caseId;
-                card.innerHTML = `<h3>${c.caseName}</h3><p>${unresolved} of ${total} disputes need a reply.</p>`;
+                card.innerHTML = `
+                    <h3>${c.caseName}</h3>
+                    <p>${unresolvedCount} of ${allRequests} disputes need a reply.</p>
+                    <p style="color: var(--secondary-gray); font-size: 0.9em; margin-top: 8px;">
+                        ${c.requestLetters.length} Request Letter${c.requestLetters.length !== 1 ? 's' : ''}
+                    </p>
+                `;
                 grid.appendChild(card);
             });
         }
 
-        function renderDisputeListView() {
-                const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-                if (!caseData) return showCasesDashboard();
-
-                document.getElementById('case-name-header').textContent = caseData.caseName;
-                const tableBody = document.getElementById('table-body');
-                tableBody.innerHTML = '';
-
-                caseData.requests.forEach((request, index) => {
-                    const row = document.createElement('tr');
-                    row.dataset.caseId = caseData.caseId;
-                    row.dataset.index = index;
-                    
-                    const hasObjection = request.objection && request.objection.trim() !== '';
-                    const hasReply = request.reply && request.reply.trim() !== '';
-                    
-                    let statusIcon = '';
-                    let statusColor = '';
-                    
-                    if (hasObjection) {
-                        if (hasReply) {
-                            statusIcon = '✔';
-                            statusColor = 'var(--action-green)';
-                        } else {
-                            statusIcon = '!';
-                            statusColor = '#ffc107'; // A standard warning yellow
-                        }
-                    } else {
-                        statusIcon = '—'; // An em-dash for "not applicable"
-                        statusColor = '#dc3545'; // A standard error red
-                    }
-                    
-                    const objectionText = hasObjection 
-                        ? (request.objection || '').substring(0, 100) + '...' 
-                        : '<i>No objection provided.</i>';
-
-                    row.innerHTML = `
-                        <td class="col-number">
-                            <span style="color: ${statusColor}; font-weight: bold; display: inline-block; width: 1.5em; text-align: center;">${statusIcon}</span>
-                            ${request.id}
-                        </td>
-                        <td class="col-request">${(request.text || '').substring(0, 80)}...</td>
-                        <td class="col-objection">${objectionText}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
+        // --- STATUS UPDATING FUNCTIONS ---
+        function updateRequestStatus(request, tableRow) {
+            const hasObjection = request.objection && request.objection.trim() !== '';
+            const hasReply = request.reply && request.reply.trim() !== '';
+            
+            let statusIcon = '';
+            let statusColor = '';
+            
+            if (hasObjection) {
+                if (hasReply) {
+                    statusIcon = '✔';
+                    statusColor = 'var(--action-green)';
+                } else {
+                    statusIcon = '!';
+                    statusColor = '#ffc107';
+                }
+            } else {
+                statusIcon = '—';
+                statusColor = '#dc3545';
             }
+
+            const statusSpan = tableRow.querySelector('.col-number span');
+            if (statusSpan) {
+                statusSpan.style.color = statusColor;
+                statusSpan.textContent = statusIcon;
+            }
+        }
+
+        function updateLetterStatus(letterData, letterRow) {
+            const unresolvedCount = letterData.requests.filter(r => r.objection && !r.reply).length;
+            const totalRequests = letterData.requests.length;
+            const objectionCount = letterData.requests.filter(r => r.objection).length;
+            
+            let status = '';
+            let statusColor = '';
+            
+            if (objectionCount === 0) {
+                status = 'Awaiting Responses';
+                statusColor = 'var(--secondary-gray)';
+            } else if (unresolvedCount === 0) {
+                status = 'All Replied';
+                statusColor = 'var(--action-green)';
+            } else {
+                status = `${unresolvedCount} Need Reply`;
+                statusColor = '#ffc107';
+            }
+
+            const statusCell = letterRow.querySelector('td:last-child span');
+            if (statusCell) {
+                statusCell.style.color = statusColor;
+                statusCell.textContent = status;
+            }
+        }
+
+        function renderRequestLettersView() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return showCasesDashboard();
+
+            document.getElementById('request-letters-header').textContent = caseData.caseName;
+            const tableBody = document.getElementById('request-letters-table');
+            tableBody.innerHTML = '';
+
+            caseData.requestLetters.forEach(letter => {
+                const row = document.createElement('tr');
+                row.dataset.letterId = letter.id;
+                
+                const totalRequests = letter.requests.length;
+                
+                row.innerHTML = `
+                    <td>${letter.dateAdded}</td>
+                    <td>${letter.description}</td>
+                    <td>${totalRequests} Request${totalRequests !== 1 ? 's' : ''}</td>
+                    <td><span></span></td>
+                `;
+                tableBody.appendChild(row);
+                
+                // Update the status after creating the row
+                updateLetterStatus(letter, row);
+            });
+        }
+
+        function renderDisputeListView() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return showCasesDashboard();
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return showRequestLettersView(currentCaseId);
+
+            document.getElementById('case-name-header').textContent = `${caseData.caseName} - ${letterData.description}`;
+            const tableBody = document.getElementById('table-body');
+            tableBody.innerHTML = '';
+
+            letterData.requests.forEach((request, index) => {
+                const row = document.createElement('tr');
+                row.dataset.index = index;
+                
+                const objectionText = request.objection && request.objection.trim() !== ''
+                    ? (request.objection || '').substring(0, 100) + '...' 
+                    : '<i>No objection provided.</i>';
+
+                row.innerHTML = `
+                    <td class="col-number">
+                        <span style="font-weight: bold; display: inline-block; width: 1.5em; text-align: center;"></span>
+                        ${request.id}
+                    </td>
+                    <td class="col-request">${(request.text || '').substring(0, 80)}...</td>
+                    <td class="col-objection">${objectionText}</td>
+                `;
+                tableBody.appendChild(row);
+                
+                // Update the status after creating the row
+                updateRequestStatus(request, row);
+            });
+        }
 
         function renderFocusView() {
             const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-            const request = caseData.requests[currentFocusIndex];
-            if (!request) return showDisputeListView(currentCaseId);
+            if (!caseData) return showDisputeListView(currentLetterId);
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return showDisputeListView(currentLetterId);
+
+            const request = letterData.requests[currentFocusIndex];
+            if (!request) return showDisputeListView(currentLetterId);
             
-            document.getElementById('focus-title').textContent = `Request ${request.id} of ${caseData.requests.length}`;
+            document.getElementById('focus-title').textContent = `Request ${request.id} of ${letterData.requests.length}`;
             document.getElementById('focus-request-text').textContent = request.text;
             const container = document.getElementById('focus-content-grid');
             
@@ -343,23 +560,30 @@
         // --- NAVIGATION & DATA HANDLING ---
         function goBack() {
             if (document.body.classList.contains('focus-mode-active')) {
-                showDisputeListView(currentCaseId);
+                showDisputeListView(currentLetterId);
             } else if (document.body.classList.contains('dispute-list-active')) {
-                showCasesDashboard();
+                showRequestLettersView(currentCaseId);
             }
         }
         
         function navigateFocus(direction) {
             if (!document.body.classList.contains('focus-mode-active')) return;
+            
             const caseData = appData.cases.find(c => c.caseId === currentCaseId);
             if (!caseData) return;
 
-            const currentRequest = caseData.requests[currentFocusIndex];
-            currentRequest.objection = document.getElementById('focus-objection-textarea').value;
-            currentRequest.reply = document.getElementById('focus-reply-editor').innerHTML;
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            // Save current state before navigation
+            const currentRequest = letterData.requests[currentFocusIndex];
+            if (currentRequest) {
+                currentRequest.objection = document.getElementById('focus-objection-textarea').value;
+                currentRequest.reply = document.getElementById('focus-reply-editor').innerHTML;
+            }
             
             const newIndex = currentFocusIndex + direction;
-            if (newIndex >= 0 && newIndex < caseData.requests.length) {
+            if (newIndex >= 0 && newIndex < letterData.requests.length) {
                 showFocusView(newIndex);
             }
         }
@@ -368,7 +592,7 @@
             const button = document.querySelector('[data-action="focus-generate"]');
             const replyEditor = document.getElementById('focus-reply-editor');
             const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-            const request = caseData.requests[currentFocusIndex];
+            const request = caseData.requestLetters[currentFocusIndex].requests[currentFocusIndex];
             const objectionText = document.getElementById('focus-objection-textarea').value.trim();
 
             if (!objectionText) { alert("Please enter an objection first."); return; }
@@ -395,17 +619,19 @@
             }
         }
 
-        // --- NEW: BATCH GENERATION HANDLER ---
         async function handleGenerateAllReplies() {
             const button = document.querySelector('[data-action="generate-all"]');
-            const statusBar = document.getElementById('status-bar');
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
+            const progressSection = document.getElementById('dispute-progress-section');
+            const statusBar = document.getElementById('dispute-status-bar');
+            const progressBar = document.getElementById('dispute-progress-bar');
             
             const caseData = appData.cases.find(c => c.caseId === currentCaseId);
             if (!caseData) return;
 
-            const requestsToProcess = caseData.requests.filter(r => r.objection && !r.reply);
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            const requestsToProcess = letterData.requests.filter(r => r.objection && !r.reply);
 
             if (requestsToProcess.length === 0) {
                 alert("No pending replies to generate.");
@@ -415,46 +641,77 @@
             const totalToProcess = requestsToProcess.length;
             button.disabled = true;
             button.innerHTML = '<div class="loading-spinner"></div> Generating...';
+            
+            // Show progress section
+            progressSection.classList.add('visible');
             statusBar.textContent = `Preparing to generate ${totalToProcess} replies...`;
             statusBar.className = 'status-bar status-processing';
-            statusBar.style.display = 'block';
             progressBar.style.width = '0%';
-            progressContainer.style.display = 'block';
 
             try {
                 let completedCount = 0;
                 for (const request of requestsToProcess) {
-                    completedCount++;
-                    statusBar.textContent = `Generating reply ${completedCount} of ${totalToProcess} (for Request #${request.id})...`;
+                    // Update progress for current request
+                    const progress = (completedCount / totalToProcess) * 100;
+                    statusBar.textContent = `Generating reply ${completedCount + 1} of ${totalToProcess} (Request #${request.id})...`;
+                    progressBar.style.width = `${progress}%`;
                     
                     const payload = { requestText: request.text, objectionText: request.objection };
                     const result = await window.electronAPI.askGemini(payload);
 
                     if (result.success) {
-                        request.reply = result.html; // Update the data model directly
+                        request.reply = result.html;
+                        
+                        // Update status in dispute list view if visible
+                        if (!document.body.classList.contains('focus-mode-active')) {
+                            const disputeRow = document.querySelector(`#table-body tr[data-index="${letterData.requests.indexOf(request)}"]`);
+                            if (disputeRow) {
+                                updateRequestStatus(request, disputeRow);
+                            }
+                        }
+
+                        // Update status in request letters view
+                        const letterRow = document.querySelector(`#request-letters-table tr[data-letter-id="${letterData.id}"]`);
+                        if (letterRow) {
+                            updateLetterStatus(letterData, letterRow);
+                        }
+                        
+                        // Update focus view if we're viewing this request
+                        if (document.body.classList.contains('focus-mode-active')) {
+                            const currentRequest = letterData.requests[currentFocusIndex];
+                            if (currentRequest && currentRequest.id === request.id) {
+                                const replyEditor = document.getElementById('focus-reply-editor');
+                                if (replyEditor) {
+                                    replyEditor.innerHTML = result.html;
+                                }
+                            }
+                        }
                     } else {
                         request.reply = `<div style="color:red;">Error generating reply: ${result.error}</div>`;
                         console.error(`Failed to generate reply for request #${request.id}`, result.error);
                     }
                     
-                    const percentage = (completedCount / totalToProcess) * 100;
-                    progressBar.style.width = `${percentage}%`;
+                    completedCount++;
                 }
 
-                statusBar.textContent = 'All pending replies have been generated.';
+                // Update final progress
+                statusBar.textContent = 'All pending replies have been generated!';
                 statusBar.className = 'status-bar status-success';
+                progressBar.style.width = '100%';
+
                 setTimeout(() => {
-                    statusBar.style.display = 'none';
-                    progressContainer.style.display = 'none';
-                }, 5000);
+                    progressSection.classList.remove('visible');
+                }, 3000);
 
             } catch (error) {
                 statusBar.textContent = `A critical error occurred: ${error.message}`;
                 statusBar.className = 'status-bar status-error';
+                setTimeout(() => {
+                    progressSection.classList.remove('visible');
+                }, 5000);
             } finally {
                 button.disabled = false;
                 button.textContent = "Generate All Pending Replies";
-                renderDisputeListView(); // Re-render the table to show new status icons
             }
         }
 
@@ -464,25 +721,31 @@
         document.body.addEventListener('click', (event) => {
             const target = event.target;
             const caseCard = target.closest('.case-card');
+            const letterRow = target.closest('#request-letters-table tr');
             const disputeRow = target.closest('#table-body tr');
             const action = target.dataset.action;
 
             if (caseCard) {
-                showDisputeListView(caseCard.dataset.caseId);
+                showRequestLettersView(caseCard.dataset.caseId);
+            } else if (letterRow) {
+                showDisputeListView(letterRow.dataset.letterId);
             } else if (disputeRow) {
                 showFocusView(parseInt(disputeRow.dataset.index));
             } else if (action) {
                 switch(action) {
                     case 'back-to-cases': showCasesDashboard(); break;
-                    case 'back-to-list': showDisputeListView(currentCaseId); break;
+                    case 'back-to-letters': showRequestLettersView(currentCaseId); break;
+                    case 'back-to-list': showDisputeListView(currentLetterId); break;
                     case 'focus-next': navigateFocus(1); break;
                     case 'focus-prev': navigateFocus(-1); break;
                     case 'focus-generate': handleGenerateReplies(); break;
-                    case 'generate-all': handleGenerateAllReplies(); break; // <-- NEW
+                    case 'generate-all': handleGenerateAllReplies(); break;
+                    case 'upload-request': window.electronAPI.uploadRequestLetter(); break;
                     case 'upload': 
                         const currentCase = appData.cases.find(c => c.caseId === currentCaseId);
-                        if (currentCase) {
-                            window.electronAPI.uploadAndProcess(currentCase.requests);
+                        const currentLetter = currentCase?.requestLetters.find(l => l.id === currentLetterId);
+                        if (currentLetter) {
+                            window.electronAPI.uploadAndProcess(currentLetter.requests);
                         }
                         break;
                 }
@@ -515,55 +778,126 @@
         });
         
         window.electronAPI.onUploadProgress((result) => {
-            const statusBar = document.getElementById('status-bar');
-            const progressContainer = document.getElementById('progress-container');
-            const progressBar = document.getElementById('progress-bar');
+            const progressSection = document.getElementById('dispute-progress-section');
+            const statusBar = document.getElementById('dispute-status-bar');
+            const progressBar = document.getElementById('dispute-progress-bar');
             const button = document.querySelector('[data-action="upload"]');
             const currentCase = appData.cases.find(c => c.caseId === currentCaseId);
-            if (!currentCase) return;
+            const currentLetter = currentCase?.requestLetters.find(l => l.id === currentLetterId);
+            if (!currentLetter) return;
+
+            const updateProgress = (message, progress) => {
+                statusBar.textContent = message;
+                statusBar.className = 'status-bar status-processing';
+                progressBar.style.width = `${progress}%`;
+            };
 
             switch (result.type) {
-                case 'start':
-                    statusBar.textContent = `Processing 1 of ${result.total}...`;
-                    statusBar.className = 'status-bar status-processing';
-                    statusBar.style.display = 'block';
-                    progressBar.style.width = '0%';
-                    progressContainer.style.display = 'block';
-                    button.disabled = true;
-                    button.innerHTML = '<div class="loading-spinner"></div> Preparing...';
-                    break;
                 case 'progress':
-                    const requestToUpdate = currentCase.requests.find(r => r.id === result.data.id);
-                    if (requestToUpdate) {
-                        requestToUpdate.objection = result.data.objection;
-                    }
-                    renderDisputeListView();
-                    const percentage = (result.current / result.total) * 100;
-                    progressBar.style.width = `${percentage}%`;
-                    statusBar.textContent = `Processing ${result.current} of ${result.total}...`;
+                    progressSection.classList.add('visible');
+                    button.disabled = true;
+                    button.innerHTML = '<div class="loading-spinner"></div> Processing...';
+                    updateProgress(result.message, result.progress);
                     break;
+
                 case 'complete':
-                    statusBar.textContent = 'Processing complete! All objections extracted.';
+                    if (result.data && Array.isArray(result.data)) {
+                        result.data.forEach(obj => {
+                            const requestToUpdate = currentLetter.requests.find(r => r.id === obj.id);
+                            if (requestToUpdate) {
+                                requestToUpdate.objection = obj.objection;
+                            }
+                        });
+                        renderDisputeListView();
+                    }
                     statusBar.className = 'status-bar status-success';
-                    progressBar.style.width = '100%';
+                    updateProgress('Processing complete! All objections extracted.', 100);
                     button.disabled = false;
                     button.innerHTML = "Upload Opponent's Response";
                     setTimeout(() => {
-                        statusBar.style.display = 'none';
-                        progressContainer.style.display = 'none';
-                    }, 5000);
+                        progressSection.classList.remove('visible');
+                    }, 3000);
                     break;
+
                 case 'error':
-                    statusBar.textContent = `Error: ${result.message}`;
+                    progressSection.classList.add('visible');
                     statusBar.className = 'status-bar status-error';
+                    updateProgress(`Error: ${result.message}`, 100);
                     button.disabled = false;
                     button.innerHTML = "Upload Opponent's Response";
+                    setTimeout(() => {
+                        progressSection.classList.remove('visible');
+                    }, 5000);
                     break;
+
                 case 'cancel':
                     button.disabled = false;
                     button.innerHTML = "Upload Opponent's Response";
-                    statusBar.style.display = 'none';
-                    progressContainer.style.display = 'none';
+                    progressSection.classList.remove('visible');
+                    break;
+            }
+        });
+
+        window.electronAPI.onRequestProgress((result) => {
+            const progressSection = document.getElementById('request-progress-section');
+            const statusBar = document.getElementById('request-status-bar');
+            const progressBar = document.getElementById('request-progress-bar');
+            const button = document.querySelector('[data-action="upload-request"]');
+            const currentCase = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!currentCase) return;
+
+            const updateProgress = (message, progress) => {
+                statusBar.textContent = message;
+                progressBar.style.width = `${progress}%`;
+            };
+
+            switch (result.type) {
+                case 'progress':
+                    progressSection.classList.add('visible');
+                    button.disabled = true;
+                    button.innerHTML = '<div class="loading-spinner"></div> Processing...';
+                    updateProgress(result.message, result.progress);
+                    break;
+
+                case 'complete':
+                    if (result.data && Array.isArray(result.data)) {
+                        const newLetter = {
+                            id: `rog-set${currentCase.requestLetters.length + 1}`,
+                            dateAdded: new Date().toISOString().split('T')[0],
+                            description: `Set ${currentCase.requestLetters.length + 1} of Interrogatories`,
+                            requests: result.data.map(req => ({
+                                ...req,
+                                objection: null,
+                                reply: null
+                            }))
+                        };
+                        currentCase.requestLetters.push(newLetter);
+                        renderRequestLettersView();
+                    }
+                    statusBar.className = 'status-bar status-success';
+                    updateProgress('Processing complete! New request letter added.', 100);
+                    button.disabled = false;
+                    button.innerHTML = 'Upload Request Letter';
+                    setTimeout(() => {
+                        progressSection.classList.remove('visible');
+                    }, 3000);
+                    break;
+
+                case 'error':
+                    progressSection.classList.add('visible');
+                    statusBar.className = 'status-bar status-error';
+                    updateProgress(`Error: ${result.message}`, 100);
+                    button.disabled = false;
+                    button.innerHTML = 'Upload Request Letter';
+                    setTimeout(() => {
+                        progressSection.classList.remove('visible');
+                    }, 5000);
+                    break;
+
+                case 'cancel':
+                    button.disabled = false;
+                    button.innerHTML = 'Upload Request Letter';
+                    progressSection.classList.remove('visible');
                     break;
             }
         });
