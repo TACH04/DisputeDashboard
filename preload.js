@@ -15,5 +15,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Data persistence functions
   saveCase: (caseData) => ipcRenderer.invoke('save-case', caseData),
   loadCase: (caseId) => ipcRenderer.invoke('load-case', caseId),
-  loadAllCases: () => ipcRenderer.invoke('load-all-cases')
+  loadAllCases: () => ipcRenderer.invoke('load-all-cases'),
+
+  // New functions for response letter
+  generateResponseLetter: (data) => ipcRenderer.invoke('generate-response-letter', data),
+  exportLetter: (data) => ipcRenderer.invoke('export-letter', data),
+
+  // Letter generation functions
+  generateLetterSection: (data) => ipcRenderer.invoke('generate-letter-section', data),
+  onLetterProgress: (callback) => ipcRenderer.on('letter-progress', (_event, value) => callback(value))
 });

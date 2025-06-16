@@ -4,8 +4,12 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const fs = require('fs').promises;
+const fs = require('fs');
 const pdf = require('pdf-parse');
+const docx = require('docx');
+const html2pdf = require('html-pdf');
+const PDFDocument = require('pdfkit');
+const mammoth = require('mammoth');
 
 const objectionLibrary = {
   "qualified response": {
@@ -79,8 +83,8 @@ const CURRENT_DATA_VERSION = '1.0';
 // Ensure data directories exist
 async function initializeDataDirectories() {
     try {
-        await fs.mkdir(DATA_DIR, { recursive: true });
-        await fs.mkdir(BACKUP_DIR, { recursive: true });
+        await fs.promises.mkdir(DATA_DIR, { recursive: true });
+        await fs.promises.mkdir(BACKUP_DIR, { recursive: true });
         console.log('Data directories initialized');
     } catch (error) {
         console.error('Error initializing data directories:', error);
@@ -93,14 +97,14 @@ async function createBackup(caseId) {
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const backupPath = path.join(BACKUP_DIR, `${caseId}_${timestamp}.json`);
         const caseData = await loadCaseData(caseId);
-        await fs.writeFile(backupPath, JSON.stringify(caseData, null, 2));
+        await fs.promises.writeFile(backupPath, JSON.stringify(caseData, null, 2));
         
         // Keep only last 5 backups per case
-        const backups = await fs.readdir(BACKUP_DIR);
+        const backups = await fs.promises.readdir(BACKUP_DIR);
         const caseBackups = backups.filter(f => f.startsWith(caseId));
         if (caseBackups.length > 5) {
             const oldestBackup = caseBackups.sort()[0];
-            await fs.unlink(path.join(BACKUP_DIR, oldestBackup));
+            await fs.promises.unlink(path.join(BACKUP_DIR, oldestBackup));
         }
     } catch (error) {
         console.error(`Error creating backup for case ${caseId}:`, error);
@@ -110,13 +114,29 @@ async function createBackup(caseId) {
 // Save case data
 async function saveCaseData(caseData) {
     try {
-        const filePath = path.join(DATA_DIR, `${caseData.caseId}.json`);
-        const dataToSave = {
-            version: CURRENT_DATA_VERSION,
-            lastModified: new Date().toISOString(),
-            data: caseData
-        };
-        await fs.writeFile(filePath, JSON.stringify(dataToSave, null, 2));
+        const caseDir = path.join(DATA_DIR, caseData.caseId);
+        if (!fs.existsSync(caseDir)) {
+            fs.mkdirSync(caseDir, { recursive: true });
+        }
+
+        // Save main case data
+        const caseFile = path.join(caseDir, 'case.json');
+        await fs.promises.writeFile(caseFile, JSON.stringify(caseData, null, 2));
+
+        // Save version history if it exists
+        if (caseData.letterVersions && caseData.letterVersions.length > 0) {
+            const versionsDir = path.join(caseDir, 'versions');
+            if (!fs.existsSync(versionsDir)) {
+                fs.mkdirSync(versionsDir, { recursive: true });
+            }
+
+            // Save each version in a separate file
+            for (const version of caseData.letterVersions) {
+                const versionFile = path.join(versionsDir, `${version.id}.json`);
+                await fs.promises.writeFile(versionFile, JSON.stringify(version, null, 2));
+            }
+        }
+
         await createBackup(caseData.caseId);
         return true;
     } catch (error) {
@@ -128,17 +148,35 @@ async function saveCaseData(caseData) {
 // Load case data
 async function loadCaseData(caseId) {
     try {
-        const filePath = path.join(DATA_DIR, `${caseId}.json`);
-        const rawData = await fs.readFile(filePath, 'utf8');
-        const savedData = JSON.parse(rawData);
+        const caseDir = path.join(DATA_DIR, caseId);
+        const caseFile = path.join(caseDir, 'case.json');
         
-        // Handle data version migrations if needed
-        if (savedData.version !== CURRENT_DATA_VERSION) {
-            // Implement version migration logic here
-            console.log(`Data migration needed from ${savedData.version} to ${CURRENT_DATA_VERSION}`);
+        if (!fs.existsSync(caseFile)) {
+            return null;
         }
-        
-        return savedData.data;
+
+        // Load main case data
+        const caseData = JSON.parse(await fs.promises.readFile(caseFile, 'utf8'));
+
+        // Load version history if it exists
+        const versionsDir = path.join(caseDir, 'versions');
+        if (fs.existsSync(versionsDir)) {
+            const versionFiles = await fs.promises.readdir(versionsDir);
+            caseData.letterVersions = [];
+            
+            for (const file of versionFiles) {
+                if (file.endsWith('.json')) {
+                    const versionFile = path.join(versionsDir, file);
+                    const version = JSON.parse(await fs.promises.readFile(versionFile, 'utf8'));
+                    caseData.letterVersions.push(version);
+                }
+            }
+
+            // Sort versions by timestamp
+            caseData.letterVersions.sort((a, b) => b.id - a.id);
+        }
+
+        return caseData;
     } catch (error) {
         console.error('Error loading case data:', error);
         return null;
@@ -148,7 +186,7 @@ async function loadCaseData(caseId) {
 // Load all cases
 async function loadAllCases() {
     try {
-        const files = await fs.readdir(DATA_DIR);
+        const files = await fs.promises.readdir(DATA_DIR);
         const caseFiles = files.filter(f => f.endsWith('.json'));
         const cases = await Promise.all(
             caseFiles.map(async file => {
@@ -205,7 +243,7 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       progress: 0
     });
 
-    const dataBuffer = await fs.readFile(filePath);
+    const dataBuffer = await fs.promises.readFile(filePath);
     const pdfData = await pdf(dataBuffer);
     const rawText = pdfData.text;
 
@@ -466,7 +504,7 @@ async function handleRequestLetterUpload(event) {
       progress: 0
     });
 
-    const dataBuffer = await fs.readFile(filePath);
+    const dataBuffer = await fs.promises.readFile(filePath);
     const pdfData = await pdf(dataBuffer);
     const rawText = pdfData.text;
 
@@ -677,3 +715,209 @@ app.on('window-all-closed', () => {
     app.quit();
   }
 });
+
+async function handleGenerateResponseLetter(event, { caseName, letterDescription, requests }) {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("API key not found.");
+    
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    const letterPrompt = `
+      You are a legal assistant tasked with drafting a formal discovery dispute letter. Format the letter using the following structure:
+
+      1. Header with current date, law firm info (use placeholder), and recipient info (use placeholder)
+      2. Re: line with case name and letter description
+      3. Opening paragraph introducing the letter's purpose
+      4. For each discovery request:
+         - Request number and text
+         - Opponent's objection
+         - Our response/reply
+      5. Closing paragraph requesting supplemental responses
+      6. Signature block (use placeholder)
+
+      Case Information:
+      - Case Name: ${caseName}
+      - Letter Description: ${letterDescription}
+      
+      Requests to Include:
+      ${JSON.stringify(requests, null, 2)}
+
+      Return the letter in HTML format with appropriate styling. Use semantic HTML elements and inline CSS for formatting.
+    `;
+
+    const result = await model.generateContent(letterPrompt);
+    const letterHtml = result.response.text();
+
+    return { success: true, html: letterHtml };
+  } catch (error) {
+    console.error("Error generating response letter:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function handleExportLetter(event, { content, format, fileName }) {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWindow) return { success: false, error: "Window not found" };
+
+  try {
+    const { filePath } = await dialog.showSaveDialog(parentWindow, {
+      title: 'Save Response Letter',
+      defaultPath: fileName,
+      filters: [
+        { name: format.toUpperCase(), extensions: [format] }
+      ]
+    });
+
+    if (!filePath) return { success: false, error: "Export cancelled" };
+
+    if (format === 'pdf') {
+      // Convert HTML to PDF
+      const options = {
+        format: 'Letter',
+        border: {
+          top: "1in",
+          right: "1in",
+          bottom: "1in",
+          left: "1in"
+        }
+      };
+
+      return new Promise((resolve, reject) => {
+        html2pdf.create(content, options).toFile(filePath, (error) => {
+          if (error) {
+            reject({ success: false, error: error.message });
+          } else {
+            resolve({ success: true });
+          }
+        });
+      });
+    } else if (format === 'docx') {
+      // Convert HTML to DOCX
+      const doc = new docx.Document({
+        sections: [{
+          properties: {},
+          children: [
+            new docx.Paragraph({
+              children: [new docx.TextRun(content.replace(/<[^>]+>/g, ''))]
+            })
+          ]
+        }]
+      });
+
+      const buffer = await docx.Packer.toBuffer(doc);
+      await fs.promises.writeFile(filePath, buffer);
+      return { success: true };
+    }
+
+    return { success: false, error: "Unsupported format" };
+  } catch (error) {
+    console.error("Error exporting letter:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+ipcMain.handle('generate-response-letter', handleGenerateResponseLetter);
+ipcMain.handle('export-letter', handleExportLetter);
+
+async function handleGenerateLetterSection(event, data) {
+  const parentWindow = BrowserWindow.fromWebContents(event.sender);
+  if (!parentWindow) return;
+
+  try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error("API key not found.");
+    
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+    let prompt = '';
+    let logMessage = '';
+    
+    switch (data.type) {
+      case 'header':
+        logMessage = 'Generating letter header...';
+        prompt = `
+          Generate the header section of a formal legal discovery dispute letter. Include:
+          1. Current date
+          2. Law firm letterhead (use placeholder info)
+          3. Recipient information (use placeholder)
+          4. Re: line with "${data.caseName} - ${data.letterDescription}"
+          5. Opening paragraph explaining this is a discovery dispute letter
+
+          Return ONLY the HTML for this section. Use semantic HTML and inline CSS for proper legal document formatting.
+        `;
+        break;
+
+      case 'request':
+        logMessage = `Processing Request #${data.requestNumber}...`;
+        prompt = `
+          Generate a section for Request #${data.requestNumber} in a discovery dispute letter. Include:
+          1. Request text: "${data.requestText}"
+          2. Objection: "${data.objectionText}"
+          3. Our Reply: "${data.replyText}"
+
+          Format this as a properly numbered section with appropriate spacing and formatting.
+          Return ONLY the HTML for this section. Use semantic HTML and inline CSS for proper legal document formatting.
+        `;
+        break;
+
+      case 'conclusion':
+        logMessage = 'Generating conclusion section...';
+        prompt = `
+          Generate the conclusion section of a discovery dispute letter. Include:
+          1. Summary paragraph requesting supplemental responses
+          2. Professional closing
+          3. Signature block (use placeholder attorney information)
+          4. Certificate of service (use placeholder)
+
+          Return ONLY the HTML for this section. Use semantic HTML and inline CSS for proper legal document formatting.
+        `;
+        break;
+
+      default:
+        throw new Error('Invalid section type');
+    }
+
+    // Log to terminal
+    console.log('\x1b[36m%s\x1b[0m', logMessage); // Cyan color for visibility
+
+    // Send progress to renderer
+    parentWindow.webContents.send('letter-progress', {
+      type: 'section-start',
+      section: data.type,
+      message: logMessage
+    });
+
+    const result = await model.generateContent(prompt);
+    const html = result.response.text();
+
+    // Log completion
+    console.log('\x1b[32m%s\x1b[0m', `✓ ${logMessage.replace('...', ' completed')}`); // Green color for success
+
+    // Send completion to renderer
+    parentWindow.webContents.send('letter-progress', {
+      type: 'section-complete',
+      section: data.type,
+      html: html
+    });
+
+    return { success: true, html };
+  } catch (error) {
+    // Log error
+    console.error('\x1b[31m%s\x1b[0m', `Error: ${error.message}`); // Red color for errors
+
+    // Send error to renderer
+    parentWindow.webContents.send('letter-progress', {
+      type: 'error',
+      section: data.type,
+      error: error.message
+    });
+
+    return { success: false, error: error.message };
+  }
+}
+
+// Add to your IPC handlers
+ipcMain.handle('generate-letter-section', handleGenerateLetterSection);

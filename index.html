@@ -309,6 +309,16 @@
             cursor: not-allowed;
         }
 
+        .btn-upload {
+            background-color: #add8e6; /* Light blue */
+            color: #2c3e50; /* Dark text for contrast */
+            border: 1px solid #90c9e0;
+        }
+        .btn-upload:hover {
+            background-color: #9ccbdb;
+            border-color: #7fb8cc;
+        }
+
         /* --- CARDS AND CONTAINERS --- */
         .case-card { 
             background: var(--surface-primary);
@@ -780,6 +790,233 @@
         tr:hover .edit-button {
             opacity: 1;
         }
+
+        #letter-editor {
+            background: white;
+            border: 1px solid var(--border-light);
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        #letter-editor:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px var(--accent-primary-hover);
+        }
+
+        .modal.letter-modal {
+            max-width: 80%;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media print {
+            #letter-editor {
+                border: none;
+                padding: 0;
+            }
+        }
+
+        /* Letter Editor View Styles */
+        #response-letter-editor-view {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        body.letter-editor-active #response-letter-editor-view {
+            display: block;
+        }
+
+        .letter-editor-grid {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: calc(100vh - 200px);
+            margin-top: 20px;
+        }
+
+        .letter-stats-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stats-card {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .stats-card h3 {
+            margin: 0 0 16px 0;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .stat-item:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .generation-progress {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .progress-stages {
+            margin: 20px 0;
+        }
+
+        .progress-stage {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .progress-stage.active {
+            opacity: 1;
+        }
+
+        .progress-stage.completed .stage-dot {
+            background-color: var(--status-success);
+        }
+
+        .stage-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--text-tertiary);
+        }
+
+        .stage-label {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+
+        .letter-preview-panel {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .preview-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-light);
+            background: var(--surface-secondary);
+        }
+
+        .preview-controls, .export-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #zoom-level {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        #letter-preview-container {
+            flex-grow: 1;
+            overflow: auto;
+            padding: 20px;
+            background: var(--surface-secondary);
+        }
+
+        #letter-preview-content {
+            background: white !important;
+            padding: 40px;
+            margin: 0 auto;
+            max-width: 8.5in;
+            min-height: 11in;
+            box-shadow: var(--shadow-md);
+            transform-origin: top center;
+            /* Force black text on white background regardless of theme */
+            color: black !important;
+        }
+
+        /* Override any theme-based color inheritance for the letter content */
+        #letter-preview-content * {
+            color: black !important;
+            background-color: white !important;
+        }
+
+        /* Only exception is error messages */
+        #letter-preview-content div[style*="color: var(--status-error)"] {
+            color: var(--status-error) !important;
+            background-color: white !important;
+        }
+
+        /* Version history styles */
+        .version-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .version-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .version-item:last-child {
+            border-bottom: none;
+        }
+
+        .version-info {
+            flex-grow: 1;
+        }
+
+        .version-date {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .version-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .letter-preview-container {
+            background: white;
+            padding: 40px;
+            margin: 20px;
+            box-shadow: var(--shadow-md);
+        }
     </style>
 </head>
 <body>
@@ -816,7 +1053,7 @@
             </header>
             <div class="action-bar">
                 <button class="btn btn-secondary" data-action="back-to-cases">← Back to All Cases</button>
-                <button class="btn btn-primary" data-action="upload-request">Upload New Request Letter</button>
+                <button class="btn btn-upload" data-action="upload-request">Upload New Request Letter</button>
             </div>
             <div class="progress-section" id="request-progress-section">
                 <div id="request-status-bar" class="status-bar"></div>
@@ -849,8 +1086,9 @@
             </header>
             <div class="action-bar">
                 <button class="btn btn-secondary" data-action="back-to-letters">← Back to Request Letters</button>
-                <button class="btn btn-primary" data-action="upload">Upload Opponent's Response</button>
+                <button class="btn btn-upload" data-action="upload">Upload Opponent's Response</button>
                 <button class="btn btn-action" data-action="generate-all">Generate All Pending Replies</button>
+                <button class="btn btn-primary" data-action="build-letter">Build Response Letter</button>
             </div>
             <div class="progress-section" id="dispute-progress-section">
                 <div id="dispute-status-bar" class="status-bar"></div>
@@ -957,9 +1195,132 @@
         </div>
     </div>
 
+    <!-- Add Response Letter Modal -->
+    <div class="modal-overlay" id="response-letter-modal">
+        <div class="modal" style="max-width: 80%; height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3>Discovery Response Letter</h3>
+                <div>
+                    <button class="btn btn-secondary" onclick="exportResponseLetter('docx')">Export as DOCX</button>
+                    <button class="btn btn-secondary" onclick="exportResponseLetter('pdf')">Export as PDF</button>
+                    <button class="modal-close" onclick="hideResponseLetterModal()">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="flex-grow: 1; overflow: auto; margin-bottom: 0;">
+                <div id="letter-editor" contenteditable="true" style="width: 100%; height: 100%; padding: 20px; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; white-space: pre-wrap;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideResponseLetterModal()">Close</button>
+                <button class="btn btn-primary" onclick="saveResponseLetter()">Save Draft</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add to the body, after other views -->
+    <!-- VIEW 5: RESPONSE LETTER EDITOR -->
+    <div id="response-letter-editor-view">
+        <div class="container">
+            <header>
+                <h1 id="letter-editor-header">Response Letter Editor</h1>
+                <h2 id="letter-editor-subtitle"></h2>
+            </header>
+            
+            <div class="action-bar">
+                <button class="btn btn-secondary" data-action="back-to-disputes">← Back to Disputes</button>
+                <button class="btn btn-action" data-action="generate-letter">Build Response Letter</button>
+            </div>
+
+            <div class="letter-editor-grid">
+                <!-- Left Column: Statistics and Controls -->
+                <div class="letter-stats-panel">
+                    <div class="stats-card">
+                        <h3>Document Statistics</h3>
+                        <div class="stat-item">
+                            <span class="stat-label">Total Requests:</span>
+                            <span id="stat-total-requests" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">With Objections:</span>
+                            <span id="stat-with-objections" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">With Responses:</span>
+                            <span id="stat-with-responses" class="stat-value">0</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Pending Responses:</span>
+                            <span id="stat-pending" class="stat-value">0</span>
+                        </div>
+                    </div>
+
+                    <div class="generation-progress" style="display: none;">
+                        <h3>Generation Progress</h3>
+                        <div class="progress-stages">
+                            <div class="progress-stage" data-stage="setup">
+                                <span class="stage-dot"></span>
+                                <span class="stage-label">Setting Up</span>
+                            </div>
+                            <div class="progress-stage" data-stage="header">
+                                <span class="stage-dot"></span>
+                                <span class="stage-label">Generating Header</span>
+                            </div>
+                            <div class="progress-stage" data-stage="body">
+                                <span class="stage-dot"></span>
+                                <span class="stage-label">Processing Requests</span>
+                            </div>
+                            <div class="progress-stage" data-stage="conclusion">
+                                <span class="stage-dot"></span>
+                                <span class="stage-label">Adding Conclusion</span>
+                            </div>
+                            <div class="progress-stage" data-stage="formatting">
+                                <span class="stage-dot"></span>
+                                <span class="stage-label">Final Formatting</span>
+                            </div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <div class="progress-status">Initializing...</div>
+                    </div>
+                </div>
+
+                <!-- Right Column: PDF Preview -->
+                <div class="letter-preview-panel">
+                    <div class="preview-toolbar">
+                        <div class="preview-controls">
+                            <button class="btn btn-secondary" onclick="zoomIn()">
+                                <svg width="16" height="16" viewBox="0 0 16 16">
+                                    <path d="M8 4v8M4 8h8" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                            <button class="btn btn-secondary" onclick="zoomOut()">
+                                <svg width="16" height="16" viewBox="0 0 16 16">
+                                    <path d="M4 8h8" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                            <span id="zoom-level">100%</span>
+                        </div>
+                        <div class="export-controls">
+                            <button class="btn btn-secondary" onclick="exportLetter('pdf')">Export PDF</button>
+                            <button class="btn btn-secondary" onclick="exportLetter('docx')">Export DOCX</button>
+                        </div>
+                    </div>
+                    <div id="letter-preview-container">
+                        <div id="letter-preview-content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="text/javascript">
         // --- DATA STORE ---
-        const initialData = {
+        // Global variables for autosave functionality
+const AUTOSAVE_DELAY = 2000; // 2 seconds
+let autoSaveTimeout = null;
+
+const initialData = {
             cases: [
                 {
                     caseId: 'gardner-navajo',
@@ -1753,8 +2114,7 @@
         }
 
         // Add autosave functionality
-        let autosaveTimeout;
-        const AUTOSAVE_DELAY = 1000; // 1 second delay
+        // Using global AUTOSAVE_DELAY and autoSaveTimeout
 
         function showAutosaveIndicator() {
             const indicator = document.querySelector('.autosave-indicator');
@@ -1909,6 +2269,632 @@
                 }
             }
         }
+
+        function showResponseLetterModal() {
+            document.getElementById('response-letter-modal').classList.add('visible');
+            generateResponseLetter();
+        }
+
+        function hideResponseLetterModal() {
+            document.getElementById('response-letter-modal').classList.remove('visible');
+        }
+
+        async function generateResponseLetter() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return;
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            const editor = document.getElementById('letter-editor');
+            editor.innerHTML = '<div class="loading-spinner"></div> Generating letter...';
+
+            try {
+                const letterContent = await window.electronAPI.generateResponseLetter({
+                    caseName: caseData.caseName,
+                    letterDescription: letterData.description,
+                    requests: letterData.requests
+                });
+
+                if (letterContent.success) {
+                    editor.innerHTML = letterContent.html;
+                } else {
+                    editor.innerHTML = `<div style="color: red;">Error generating letter: ${letterContent.error}</div>`;
+                }
+            } catch (error) {
+                editor.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function saveResponseLetter() {
+            try {
+                const editor = document.getElementById('letter-editor');
+                const content = editor.innerHTML;
+                
+                const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+                if (!caseData) return;
+
+                const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+                if (!letterData) return;
+
+                // Save the letter content to the letter data
+                letterData.responseLetter = content;
+                await autoSave();
+
+                // Show success message
+                const autosaveIndicator = document.querySelector('.autosave-indicator');
+                autosaveIndicator.classList.add('visible');
+                setTimeout(() => {
+                    autosaveIndicator.classList.remove('visible');
+                }, 2000);
+            } catch (error) {
+                console.error('Error saving response letter:', error);
+                alert('Error saving the letter. Please try again.');
+            }
+        }
+
+        async function exportResponseLetter(format) {
+            try {
+                const editor = document.getElementById('letter-editor');
+                const content = editor.innerHTML;
+                
+                const result = await window.electronAPI.exportLetter({
+                    content,
+                    format,
+                    fileName: `Response_Letter_${new Date().toISOString().split('T')[0]}`
+                });
+
+                if (result.success) {
+                    // Show success message
+                    alert(`Letter exported successfully as ${format.toUpperCase()}`);
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                console.error('Error exporting letter:', error);
+                alert(`Error exporting letter as ${format.toUpperCase()}. Please try again.`);
+            }
+        }
+
+        // Add to your existing JavaScript
+
+        let currentZoomLevel = 100;
+
+        function showLetterEditor() {
+            document.body.className = 'letter-editor-active';
+            updateLetterStats();
+            updateEditorHeader();
+        }
+
+        function updateEditorHeader() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return;
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            document.getElementById('letter-editor-header').textContent = caseData.caseName;
+            document.getElementById('letter-editor-subtitle').textContent = letterData.description;
+        }
+
+        function updateLetterStats() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return;
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            const totalRequests = letterData.requests.length;
+            const withObjections = letterData.requests.filter(r => r.objection && r.objection.trim()).length;
+            const withResponses = letterData.requests.filter(r => r.reply && r.reply.trim()).length;
+            const pending = withObjections - withResponses;
+
+            document.getElementById('stat-total-requests').textContent = totalRequests;
+            document.getElementById('stat-with-objections').textContent = withObjections;
+            document.getElementById('stat-with-responses').textContent = withResponses;
+            document.getElementById('stat-pending').textContent = pending;
+        }
+
+        function updateGenerationProgress(stage, status, progress) {
+            const progressSection = document.querySelector('.generation-progress');
+            progressSection.style.display = 'block';
+
+            // Update stages
+            document.querySelectorAll('.progress-stage').forEach(stageEl => {
+                const stageName = stageEl.dataset.stage;
+                stageEl.classList.remove('active', 'completed');
+                
+                if (stageName === stage) {
+                    stageEl.classList.add('active');
+                } else if (getStageIndex(stageName) < getStageIndex(stage)) {
+                    stageEl.classList.add('completed');
+                }
+            });
+
+            // Update progress bar
+            const progressBar = progressSection.querySelector('.progress-bar');
+            progressBar.style.width = `${progress}%`;
+
+            // Update status text
+            const statusEl = progressSection.querySelector('.progress-status');
+            statusEl.textContent = status;
+        }
+
+        function getStageIndex(stage) {
+            const stages = ['setup', 'header', 'body', 'conclusion', 'formatting'];
+            return stages.indexOf(stage);
+        }
+
+        async function generateResponseLetter() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return;
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            const generateButton = document.querySelector('[data-action="generate-letter"]');
+            generateButton.disabled = true;
+
+            try {
+                // Reset letter sections
+                letterSections = {
+                    header: '',
+                    requests: [],
+                    conclusion: ''
+                };
+
+                // Stage 1: Setup
+                updateGenerationProgress('setup', 'Preparing document generation...', 10);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate setup time
+
+                // Stage 2: Header
+                const headerResult = await window.electronAPI.generateLetterSection({
+                    type: 'header',
+                    caseName: caseData.caseName,
+                    letterDescription: letterData.description
+                });
+
+                // Stage 3: Body (Process each request)
+                const totalRequests = letterData.requests.length;
+                
+                for (let i = 0; i < totalRequests; i++) {
+                    const request = letterData.requests[i];
+                    const progress = 40 + (40 * (i / totalRequests));
+                    
+                    const requestResult = await window.electronAPI.generateLetterSection({
+                        type: 'request',
+                        requestNumber: i + 1,
+                        requestText: request.text,
+                        objectionText: request.objection,
+                        replyText: request.reply
+                    });
+                }
+
+                // Stage 4: Conclusion
+                const conclusionResult = await window.electronAPI.generateLetterSection({
+                    type: 'conclusion'
+                });
+
+                // Stage 5: Final Formatting
+                updateGenerationProgress('formatting', 'Applying final formatting...', 95);
+                
+                // Complete
+                updateGenerationProgress('formatting', 'Letter generation complete!', 100);
+                setTimeout(() => {
+                    document.querySelector('.generation-progress').style.display = 'none';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error generating letter:', error);
+                document.querySelector('.progress-status').textContent = `Error: ${error.message}`;
+                document.querySelector('.progress-status').style.color = 'var(--status-error)';
+            } finally {
+                generateButton.disabled = false;
+            }
+        }
+
+        function zoomIn() {
+            if (currentZoomLevel < 200) {
+                currentZoomLevel += 25;
+                updateZoom();
+            }
+        }
+
+        function zoomOut() {
+            if (currentZoomLevel > 50) {
+                currentZoomLevel -= 25;
+                updateZoom();
+            }
+        }
+
+        function updateZoom() {
+            const content = document.getElementById('letter-preview-content');
+            content.style.transform = `scale(${currentZoomLevel / 100})`;
+            document.getElementById('zoom-level').textContent = `${currentZoomLevel}%`;
+        }
+
+        // Update the click event listener
+        document.body.addEventListener('click', (event) => {
+            const target = event.target;
+            const action = target.dataset.action;
+
+            if (action === 'build-letter') {
+                showLetterEditor();
+            } else if (action === 'back-to-disputes') {
+                showDisputeListView(currentLetterId);
+            } else if (action === 'generate-letter') {
+                generateResponseLetter();
+            }
+            // ... existing click handlers ...
+        });
+
+        // Add to your JavaScript after other functions
+
+        let letterSections = {
+            header: '',
+            requests: [],
+            conclusion: ''
+        };
+
+        function updatePreview() {
+            const content = document.getElementById('letter-preview-content');
+            content.innerHTML = `
+                ${letterSections.header}
+                ${letterSections.requests.join('\n')}
+                ${letterSections.conclusion}
+            `;
+        }
+
+        // Set up letter progress listener
+        window.electronAPI.onLetterProgress((progress) => {
+            switch (progress.type) {
+                case 'section-start':
+                    // Update progress UI
+                    updateGenerationProgress(progress.section, progress.message, getProgressPercentage(progress.section));
+                    break;
+
+                case 'section-complete':
+                    // Store the completed section
+                    if (progress.section === 'header') {
+                        letterSections.header = progress.html;
+                    } else if (progress.section === 'request') {
+                        letterSections.requests.push(progress.html);
+                    } else if (progress.section === 'conclusion') {
+                        letterSections.conclusion = progress.html;
+                    }
+                    
+                    // Update the preview immediately
+                    updatePreview();
+                    break;
+
+                case 'error':
+                    // Show error in the preview area
+                    const errorHtml = `
+                        <div style="color: var(--status-error); padding: 20px;">
+                            <h3>Error in ${progress.section}</h3>
+                            <p>${progress.error}</p>
+                        </div>
+                    `;
+                    
+                    if (progress.section === 'header') {
+                        letterSections.header = errorHtml;
+                    } else if (progress.section === 'request') {
+                        letterSections.requests.push(errorHtml);
+                    } else if (progress.section === 'conclusion') {
+                        letterSections.conclusion = errorHtml;
+                    }
+                    
+                    updatePreview();
+                    break;
+            }
+        });
+
+        function getProgressPercentage(section) {
+            switch (section) {
+                case 'setup': return 10;
+                case 'header': return 25;
+                case 'body': return 40;
+                case 'conclusion': return 85;
+                case 'formatting': return 95;
+                default: return 0;
+            }
+        }
+
+        async function generateResponseLetter() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return;
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            const generateButton = document.querySelector('[data-action="generate-letter"]');
+            generateButton.disabled = true;
+
+            try {
+                // Reset letter sections
+                letterSections = {
+                    header: '',
+                    requests: [],
+                    conclusion: ''
+                };
+
+                // Stage 1: Setup
+                updateGenerationProgress('setup', 'Preparing document generation...', 10);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate setup time
+
+                // Stage 2: Header
+                const headerResult = await window.electronAPI.generateLetterSection({
+                    type: 'header',
+                    caseName: caseData.caseName,
+                    letterDescription: letterData.description
+                });
+
+                // Stage 3: Body (Process each request)
+                const totalRequests = letterData.requests.length;
+                
+                for (let i = 0; i < totalRequests; i++) {
+                    const request = letterData.requests[i];
+                    const progress = 40 + (40 * (i / totalRequests));
+                    
+                    const requestResult = await window.electronAPI.generateLetterSection({
+                        type: 'request',
+                        requestNumber: i + 1,
+                        requestText: request.text,
+                        objectionText: request.objection,
+                        replyText: request.reply
+                    });
+                }
+
+                // Stage 4: Conclusion
+                const conclusionResult = await window.electronAPI.generateLetterSection({
+                    type: 'conclusion'
+                });
+
+                // Stage 5: Final Formatting
+                updateGenerationProgress('formatting', 'Applying final formatting...', 95);
+                
+                // Complete
+                updateGenerationProgress('formatting', 'Letter generation complete!', 100);
+                setTimeout(() => {
+                    document.querySelector('.generation-progress').style.display = 'none';
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error generating letter:', error);
+                document.querySelector('.progress-status').textContent = `Error: ${error.message}`;
+                document.querySelector('.progress-status').style.color = 'var(--status-error)';
+            } finally {
+                generateButton.disabled = false;
+            }
+        }
+
+        // Add to your JavaScript after the initial data structure
+
+        // Version history tracking
+        let letterVersions = {};
+        // Using global AUTOSAVE_DELAY and autoSaveTimeout
+
+        // Autosave function for letter drafts
+        async function autosaveLetter() {
+            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            if (!caseData) return;
+
+            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            if (!letterData) return;
+
+            // Create a version ID based on timestamp
+            const versionId = Date.now();
+            const content = document.getElementById('letter-preview-content').innerHTML;
+
+            // Initialize version history for this letter if it doesn't exist
+            if (!letterVersions[letterData.id]) {
+                letterVersions[letterData.id] = [];
+            }
+
+            // Add new version
+            letterVersions[letterData.id].push({
+                id: versionId,
+                timestamp: new Date().toISOString(),
+                content: content,
+                sections: { ...letterSections } // Store current sections state
+            });
+
+            // Keep only last 10 versions
+            if (letterVersions[letterData.id].length > 10) {
+                letterVersions[letterData.id].shift();
+            }
+
+            // Show autosave indicator
+            const indicator = document.querySelector('.autosave-indicator');
+            indicator.classList.add('visible');
+            setTimeout(() => {
+                indicator.classList.remove('visible');
+            }, 2000);
+
+            // Save to storage
+            await window.electronAPI.saveCase({
+                ...caseData,
+                letterVersions: letterVersions[letterData.id]
+            });
+        }
+
+        // Add version history modal HTML after your other modals
+        const versionHistoryModal = `
+            <div class="modal-overlay" id="version-history-modal">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>Version History</h3>
+                        <button class="modal-close" onclick="hideVersionHistoryModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="version-list" id="version-list">
+                            <!-- Versions will be populated here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="hideVersionHistoryModal()">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Add version history button to the preview toolbar
+        document.querySelector('.preview-toolbar').innerHTML += `
+            <button class="btn btn-secondary" onclick="showVersionHistoryModal()">
+                <svg width="16" height="16" viewBox="0 0 16 16">
+                    <path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71V3.5z" fill="currentColor"/>
+                    <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z" fill="currentColor"/>
+                </svg>
+                Version History
+            </button>
+        `;
+
+        // Add version history modal functions
+        function showVersionHistoryModal() {
+            const modal = document.getElementById('version-history-modal');
+            const versionList = document.getElementById('version-list');
+            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
+                ?.requestLetters.find(l => l.id === currentLetterId);
+            
+            if (!letterData || !letterVersions[letterData.id]) {
+                versionList.innerHTML = '<p>No previous versions available.</p>';
+            } else {
+                versionList.innerHTML = letterVersions[letterData.id]
+                    .sort((a, b) => b.id - a.id)
+                    .map(version => `
+                        <div class="version-item">
+                            <div class="version-info">
+                                <span class="version-date">${new Date(version.timestamp).toLocaleString()}</span>
+                            </div>
+                            <div class="version-actions">
+                                <button class="btn btn-secondary" onclick="previewVersion('${version.id}')">Preview</button>
+                                <button class="btn btn-primary" onclick="restoreVersion('${version.id}')">Restore</button>
+                            </div>
+                        </div>
+                    `).join('');
+            }
+            
+            modal.classList.add('visible');
+        }
+
+        function hideVersionHistoryModal() {
+            document.getElementById('version-history-modal').classList.remove('visible');
+        }
+
+        function previewVersion(versionId) {
+            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
+                ?.requestLetters.find(l => l.id === currentLetterId);
+            
+            if (!letterData || !letterVersions[letterData.id]) return;
+            
+            const version = letterVersions[letterData.id].find(v => v.id === parseInt(versionId));
+            if (!version) return;
+            
+            // Show preview in a new modal
+            const previewModal = document.createElement('div');
+            previewModal.className = 'modal-overlay';
+            previewModal.innerHTML = `
+                <div class="modal letter-modal">
+                    <div class="modal-header">
+                        <h3>Version from ${new Date(version.timestamp).toLocaleString()}</h3>
+                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="letter-preview-container">
+                            <div class="letter-preview-content">
+                                ${version.content}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(previewModal);
+            previewModal.classList.add('visible');
+        }
+
+        function restoreVersion(versionId) {
+            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
+                ?.requestLetters.find(l => l.id === currentLetterId);
+            
+            if (!letterData || !letterVersions[letterData.id]) return;
+            
+            const version = letterVersions[letterData.id].find(v => v.id === parseInt(versionId));
+            if (!version) return;
+            
+            // Restore the content and sections
+            letterSections = { ...version.sections };
+            updatePreview();
+            
+            // Hide the version history modal
+            hideVersionHistoryModal();
+            
+            // Show success message
+            const indicator = document.querySelector('.autosave-indicator');
+            indicator.querySelector('.text').textContent = 'Version restored';
+            indicator.classList.add('visible');
+            setTimeout(() => {
+                indicator.classList.remove('visible');
+                indicator.querySelector('.text').textContent = 'Changes saved';
+            }, 2000);
+        }
+
+        // Add CSS for version history
+        const versionHistoryStyles = `
+            .version-list {
+                max-height: 400px;
+                overflow-y: auto;
+            }
+
+            .version-item {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 12px;
+                border-bottom: 1px solid var(--border-light);
+            }
+
+            .version-item:last-child {
+                border-bottom: none;
+            }
+
+            .version-info {
+                flex-grow: 1;
+            }
+
+            .version-date {
+                font-size: 0.9rem;
+                color: var(--text-secondary);
+            }
+
+            .version-actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            .letter-preview-container {
+                background: white;
+                padding: 40px;
+                margin: 20px;
+                box-shadow: var(--shadow-md);
+            }
+        `;
+
+        // Add the styles to the existing style section
+        document.querySelector('style').textContent += versionHistoryStyles;
+
+        // Modify the existing generateResponseLetter function to include autosave
+        // Using global AUTOSAVE_DELAY and autoSaveTimeout
+
+        // Add autosave trigger to the letter progress listener
+        window.electronAPI.onLetterProgress((progress) => {
+            // ... existing progress handling code ...
+
+            // Clear any existing autosave timeout
+            clearTimeout(autoSaveTimeout);
+            
+            // Set new timeout for autosave
+            autoSaveTimeout = setTimeout(autosaveLetter, AUTOSAVE_DELAY);
+        });
     </script>
 
     <!-- Add Case Modal -->
