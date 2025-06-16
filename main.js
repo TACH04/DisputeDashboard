@@ -4,8 +4,7 @@
 const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
 const path = require('path');
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const fs = require('fs');
+const fs = require('fs').promises;
 const pdf = require('pdf-parse');
 
 const objectionLibrary = {
@@ -72,6 +71,111 @@ const objectionLibrary = {
 
 require('dotenv').config();
 
+// Data storage configuration
+const DATA_DIR = path.join(app.getPath('userData'), 'case_data');
+const BACKUP_DIR = path.join(app.getPath('userData'), 'backups');
+const CURRENT_DATA_VERSION = '1.0';
+
+// Ensure data directories exist
+async function initializeDataDirectories() {
+    try {
+        await fs.mkdir(DATA_DIR, { recursive: true });
+        await fs.mkdir(BACKUP_DIR, { recursive: true });
+        console.log('Data directories initialized');
+    } catch (error) {
+        console.error('Error initializing data directories:', error);
+    }
+}
+
+// Data versioning and backup
+async function createBackup(caseId) {
+    try {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const backupPath = path.join(BACKUP_DIR, `${caseId}_${timestamp}.json`);
+        const caseData = await loadCaseData(caseId);
+        await fs.writeFile(backupPath, JSON.stringify(caseData, null, 2));
+        
+        // Keep only last 5 backups per case
+        const backups = await fs.readdir(BACKUP_DIR);
+        const caseBackups = backups.filter(f => f.startsWith(caseId));
+        if (caseBackups.length > 5) {
+            const oldestBackup = caseBackups.sort()[0];
+            await fs.unlink(path.join(BACKUP_DIR, oldestBackup));
+        }
+    } catch (error) {
+        console.error(`Error creating backup for case ${caseId}:`, error);
+    }
+}
+
+// Save case data
+async function saveCaseData(caseData) {
+    try {
+        const filePath = path.join(DATA_DIR, `${caseData.caseId}.json`);
+        const dataToSave = {
+            version: CURRENT_DATA_VERSION,
+            lastModified: new Date().toISOString(),
+            data: caseData
+        };
+        await fs.writeFile(filePath, JSON.stringify(dataToSave, null, 2));
+        await createBackup(caseData.caseId);
+        return true;
+    } catch (error) {
+        console.error('Error saving case data:', error);
+        return false;
+    }
+}
+
+// Load case data
+async function loadCaseData(caseId) {
+    try {
+        const filePath = path.join(DATA_DIR, `${caseId}.json`);
+        const rawData = await fs.readFile(filePath, 'utf8');
+        const savedData = JSON.parse(rawData);
+        
+        // Handle data version migrations if needed
+        if (savedData.version !== CURRENT_DATA_VERSION) {
+            // Implement version migration logic here
+            console.log(`Data migration needed from ${savedData.version} to ${CURRENT_DATA_VERSION}`);
+        }
+        
+        return savedData.data;
+    } catch (error) {
+        console.error('Error loading case data:', error);
+        return null;
+    }
+}
+
+// Load all cases
+async function loadAllCases() {
+    try {
+        const files = await fs.readdir(DATA_DIR);
+        const caseFiles = files.filter(f => f.endsWith('.json'));
+        const cases = await Promise.all(
+            caseFiles.map(async file => {
+                const caseId = path.basename(file, '.json');
+                return await loadCaseData(caseId);
+            })
+        );
+        return cases.filter(Boolean); // Remove any null results
+    } catch (error) {
+        console.error('Error loading all cases:', error);
+        return [];
+    }
+}
+
+// IPC handlers for data operations
+ipcMain.handle('save-case', async (event, caseData) => {
+    return await saveCaseData(caseData);
+});
+
+ipcMain.handle('load-case', async (event, caseId) => {
+    return await loadCaseData(caseId);
+});
+
+ipcMain.handle('load-all-cases', async () => {
+    return await loadAllCases();
+});
+
 async function handleUploadAndProcess(event, requestsFromUI) {
   const parentWindow = BrowserWindow.fromWebContents(event.sender);
   if (!parentWindow) return;
@@ -101,7 +205,7 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       progress: 0
     });
 
-    const dataBuffer = fs.readFileSync(filePath);
+    const dataBuffer = await fs.readFile(filePath);
     const pdfData = await pdf(dataBuffer);
     const rawText = pdfData.text;
 
@@ -165,8 +269,9 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       4. Ensure each objection is matched to the correct request number
       5. Include ONLY the actual objection text, not the original request text
       6. Maintain the exact wording of each objection
+      7. IMPORTANT: If you cannot find ANY objections in the document, return {"error": "No objections found in document"}
 
-      Return ONLY the JSON array.
+      Return ONLY the JSON array or error object.
     `;
 
     // Update progress during AI processing
@@ -190,7 +295,7 @@ async function handleUploadAndProcess(event, requestsFromUI) {
         });
         currentUpdateIndex++;
       }
-    }, 2000); // Update every 2 seconds
+    }, 2000);
 
     const result = await model.generateContent(extractionPrompt);
     clearInterval(progressInterval);
@@ -204,11 +309,22 @@ async function handleUploadAndProcess(event, requestsFromUI) {
     });
 
     const responseText = result.response.text();
-    const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+    const jsonMatch = responseText.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
     
     if (jsonMatch) {
-      const extractedObjections = JSON.parse(jsonMatch[0]);
+      const extractedData = JSON.parse(jsonMatch[0]);
       
+      // Check if we got an error response
+      if (extractedData.error) {
+        throw new Error(extractedData.error);
+      }
+
+      // Check if we found any actual objections
+      const hasAnyObjections = extractedData.some(item => item.objection !== null && item.objection.trim() !== '');
+      if (!hasAnyObjections) {
+        throw new Error("No objections found in the uploaded document. Please check that you've uploaded the correct response document.");
+      }
+
       parentWindow.webContents.send('upload-progress', { 
         type: 'progress',
         stage: 'finalizing',
@@ -216,10 +332,10 @@ async function handleUploadAndProcess(event, requestsFromUI) {
         progress: 95
       });
 
-      // Send all results at once
+      // Send successful results
       parentWindow.webContents.send('upload-progress', { 
         type: 'complete',
-        data: extractedObjections
+        data: extractedData
       });
     } else {
       throw new Error("Failed to extract objections from the document.");
@@ -350,7 +466,7 @@ async function handleRequestLetterUpload(event) {
       progress: 0
     });
 
-    const dataBuffer = fs.readFileSync(filePath);
+    const dataBuffer = await fs.readFile(filePath);
     const pdfData = await pdf(dataBuffer);
     const rawText = pdfData.text;
 
@@ -433,7 +549,9 @@ const createWindow = () => {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true
     }
   });
 
@@ -499,14 +617,54 @@ const createWindow = () => {
   Menu.setApplicationMenu(menu);
 
   mainWindow.loadFile('index.html');
+  
+  return mainWindow;
 };
 
 ipcMain.handle('ask-gemini', handleAskGemini);
 ipcMain.handle('upload-and-process', handleUploadAndProcess);
 ipcMain.handle('upload-request-letter', handleRequestLetterUpload);
 
-app.whenReady().then(() => {
-  createWindow();
+// Save all cases
+async function saveAllCases(cases) {
+  try {
+    await Promise.all(cases.map(caseData => saveCaseData(caseData)));
+    return true;
+  } catch (error) {
+    console.error('Error saving all cases:', error);
+    return false;
+  }
+}
+
+// Handle saving data before quit
+async function handleBeforeQuit(cases) {
+  await saveAllCases(cases);
+}
+
+app.whenReady().then(async () => {
+  await initializeDataDirectories();
+  const mainWindow = createWindow();
+
+  // Set up periodic autosave (every 5 minutes)
+  setInterval(async () => {
+    try {
+      const cases = await mainWindow.webContents.executeJavaScript('appData.cases');
+      await saveAllCases(cases);
+      console.log('Autosave completed');
+    } catch (error) {
+      console.error('Autosave failed:', error);
+    }
+  }, 5 * 60 * 1000);
+
+  // Save data when window is closed
+  mainWindow.on('close', async (e) => {
+    e.preventDefault(); // Prevent the window from closing immediately
+    const webContents = mainWindow.webContents;
+    const cases = await webContents.executeJavaScript('appData.cases');
+    await handleBeforeQuit(cases);
+    mainWindow.destroy(); // Now close the window
+  });
+
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();

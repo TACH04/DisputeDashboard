@@ -11,4 +11,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // --- NEW: A listener for commands from the native menu ---
   onMenuAction: (callback) => ipcRenderer.on('menu-action', (_event, action) => callback(action)),
+  
+  // Data persistence functions
+  saveCase: (caseData) => ipcRenderer.invoke('save-case', caseData),
+  loadCase: (caseId) => ipcRenderer.invoke('load-case', caseId),
+  loadAllCases: () => ipcRenderer.invoke('load-all-cases')
 });
