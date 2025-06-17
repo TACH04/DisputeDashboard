@@ -1,0 +1,60 @@
+{
+  "qualified response": {
+    "argument": "Responses to discovery requests that are 'subject to' and 'without waiving objections' are improper, confusing, misleading, and without basis in the Federal Rules of Civil Procedure, and waive the objections.",
+    "cases": [
+      "Fay Avenue Properties, LLC v. Travelers Property Casualty Companies of America, 2014 WL 12570974, at *1 (S.D. Cal. 2014)",
+      "Herrera v. AllianceOne Receivable Mgmt., Inc., 2016 WL 1182751, at *3 (S.D. Cal. Mar. 28, 2016)"
+    ]
+  },
+  "multiple subparts": {
+    "argument": "Not all subparts are 'discrete subparts' under Rule 33(a)(1). Interrogatory subparts are to be counted as one interrogatory if they are logically or factually subsumed within and necessarily related to the primary question.",
+    "cases": [
+      "Trevino v. ACB American Inc., 232 F.R.D. 612, 614 (N.D. Cal. 2006)"
+    ]
+  },
+  "vague": {
+    "argument": "A party making a vagueness objection bears the burden to show such vagueness or ambiguity by demonstrating that more than 'mere reason and common sense' is needed to attribute ordinary definitions to the terms.",
+    "cases": [
+      "Moss v. Blue Cross & Blue Shield of Kan., Inc., 241 F.R.D. 683, 696 (D.Kan.2007)"
+    ]
+  },
+  "not limited in time or scope": {
+    "argument": "The objection is a conclusory boilerplate allegation. The request is appropriately limited to the relevant time period and subject matter of the litigation.",
+    "cases": []
+  },
+  "third party custody": {
+    "argument": "This is an invalid objection. Rule 33 imposes a duty on the responding party to secure all information available to it, including information possessed by its officers, agents, and in some cases, corporate subsidiaries.",
+    "cases": [
+      "Thomas v. Cate, 715 F. Supp. 2d 1012, 1032 (E.D. Cal. 2010)",
+      "General Dynamics Corp. v. Selb Mfg. Co., 481 F.2d 1204, 1211 (8th Cir.1973)"
+    ]
+  },
+  "overly broad": {
+    "argument": "A party opposing discovery as allegedly overbroad bears the burden of showing why discovery should be denied. A conclusory allegation is insufficient.",
+    "cases": [
+      "SEC v. Brady, 238 F.R.D. 429, 437 (N.D.Tex.2006)"
+    ]
+  },
+  "premature/early discovery": {
+    "argument": "A party must respond to interrogatories based on the information presently available and has an obligation to review appropriate materials and respond to the fullest extent possible. A reasonable effort to respond must be made.",
+    "cases": [
+      "Fredrics v. City of Scottsdale, 2022 WL 60546, at *1 (D. Ariz. Jan. 6, 2022)"
+    ]
+  },
+  "unduly burdensome": {
+    "argument": "To sustain an 'unduly burdensome' objection, a party must provide a factual basis for the claim. Courts must balance the burden on the interrogated party against the benefit to the discovering party.",
+    "cases": [
+      "Hoffman v. United Telecommunications, Inc., 117 F.R.D. 436, 438 (D.Kan.1987)"
+    ]
+  },
+  "work product": {
+    "argument": "General boilerplate objections are insufficient to assert the work product doctrine. A party must establish that the information it seeks to withhold was prepared in anticipation of litigation and provide a privilege log.",
+    "cases": [
+      "Rogers v. Giurbino, 288 F.R.D. 469, 487 (S.D. Cal. 2012)"
+    ]
+  },
+  "unclassifiable": {
+    "argument": "A general persuasive argument is required.",
+    "cases": []
+  }
+} 

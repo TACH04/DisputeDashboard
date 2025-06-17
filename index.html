@@ -1207,6 +1207,290 @@
             border-radius: 4px;
             word-break: break-all;
         }
+
+        /* --- LEGAL DOCUMENT REPLICA STYLES --- */
+        #letter-preview-content {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt; /* Standard legal document font size */
+            line-height: 1.5; /* Double-spaced is common, 1.5 is readable */
+            color: #000000;
+            background: #ffffff;
+            padding: 1in; /* Standard margins */
+            width: 8.5in;
+            min-height: 11in;
+            box-sizing: border-box; /* Ensures padding is included in width/height */
+        }
+
+        /* Ensure all child elements inherit the black color */
+        #letter-preview-content * {
+            font-family: inherit;
+            font-size: inherit;
+            color: #000000 !important; /* Force black text */
+            background-color: transparent !important;
+        }
+
+        /* Header Styles */
+        .letter-header .law-firm-name {
+            text-align: center;
+            font-weight: bold;
+            font-size: 14pt;
+            margin-bottom: 0;
+        }
+        .letter-header .law-firm-details {
+            text-align: center;
+            font-size: 10pt;
+            margin-top: 2px;
+            margin-bottom: 3em; /* Space between header and date */
+        }
+
+        /* Date and Recipient Styles */
+        .letter-meta {
+            margin-bottom: 2em;
+        }
+        .letter-meta .via-email {
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .letter-meta p {
+            text-indent: 0;
+            margin: 0 0 4px 0;
+        }
+
+        /* RE: Block Styles */
+        .re-block {
+            margin-bottom: 2em;
+            padding-left: 1in; /* Indent the RE block */
+        }
+        .re-block p {
+            margin: 0;
+            text-indent: 0;
+        }
+
+        /* Main Body Styles */
+        .letter-body p {
+            text-indent: 0.5in; /* Indent first line of paragraphs */
+            margin: 0 0 1em 0;
+        }
+        .letter-body p.no-indent {
+            text-indent: 0;
+        }
+
+        /* Interrogatory Section Styles */
+        .interrogatory-section {
+            margin-top: 2em;
+            margin-bottom: 2em;
+        }
+        .interrogatory-section h3.interrogatory-title {
+            font-weight: bold;
+            text-decoration: underline;
+            font-size: 12pt;
+            text-indent: 0;
+            margin-bottom: 1em;
+        }
+        .interrogatory-section .response-quote {
+            margin-left: 0.5in;
+            margin-right: 0.5in;
+            margin-bottom: 1em;
+            font-style: italic;
+            border-left: 2px solid #ccc;
+            padding-left: 1em;
+        }
+        .interrogatory-section .legal-argument {
+            text-indent: 0;
+        }
+        .interrogatory-section .legal-argument p:first-child {
+            text-indent: 0;
+        }
+        .interrogatory-section .legal-argument p {
+            text-indent: 0.5in;
+        }
+
+        /* Case Law Citation Style */
+        .interrogatory-section i, .legal-argument i {
+            font-style: italic;
+        }
+
+        /* Sub-section (a, b, c) styling */
+        .interrogatory-section .sub-objection {
+            margin-left: 0.5in;
+            margin-top: 1em;
+        }
+        .interrogatory-section .sub-objection p:first-child {
+            text-indent: 0;
+        }
+
+        /* Footer and Signature */
+        .signature-block {
+            margin-top: 3em;
+            padding-left: 4.5in; /* Pushes signature to the right */
+        }
+        .signature-block p {
+            margin: 0;
+            text-indent: 0;
+        }
+        .page-number {
+            text-align: right;
+            margin-top: 1in;
+            position: absolute;
+            bottom: 0.5in;
+            right: 1in;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body, #letter-preview-container {
+                background: #ffffff;
+                margin: 0;
+            }
+            #letter-preview-content {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 1in;
+                position: relative;
+            }
+            .interrogatory-section {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Add to your existing styles */
+        #user-profile-view {
+            display: none;
+            width: 100%;
+            height: 100vh;
+            overflow-y: auto;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        body.profile-view-active #user-profile-view {
+            display: block;
+            opacity: 1;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            padding: 20px 0;
+        }
+
+        .profile-section {
+            background: var(--surface-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .profile-section h3 {
+            margin: 0 0 20px 0;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 6px;
+            background: var(--surface-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 2px var(--accent-primary-hover);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        textarea.form-input {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .help-text {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+        }
+
+        .info-group {
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .info-group:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .info-group label {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            color: var(--text-primary);
+            font-family: monospace;
+            font-size: 0.9rem;
+            padding: 8px;
+            background: var(--surface-secondary);
+            border-radius: 4px;
+            word-break: break-all;
+        }
+
+        /* Add loading state styles */
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .loading.with-text::after {
+            content: attr(data-loading-text);
+        }
+
+        /* Dark theme support for loading state */
+        [data-theme="dark"] .loading::after {
+            background: rgba(0, 0, 0, 0.7);
+        }
     </style>
 </head>
 <body>
@@ -1355,68 +1639,6 @@
                         <div id="focus-reply-editor" class="replies-content" contenteditable="true"></div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Case Modal -->
-    <div class="modal-overlay" id="add-case-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Add New Case</h3>
-                <button class="modal-close" onclick="hideAddCaseModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label for="case-name-input">Case Name</label>
-                    <input type="text" id="case-name-input" placeholder="Enter case name...">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="hideAddCaseModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="createNewCase()">Create Case</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Edit Case Modal -->
-    <div class="modal-overlay" id="edit-case-modal">
-        <div class="modal">
-            <div class="modal-header">
-                <h3>Edit Case Name</h3>
-                <button class="modal-close" onclick="hideEditCaseModal()">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label for="edit-case-name-input">Case Name</label>
-                    <input type="text" id="edit-case-name-input">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="hideEditCaseModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveEditedCase()">Save Changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Add Response Letter Modal -->
-    <div class="modal-overlay" id="response-letter-modal">
-        <div class="modal" style="max-width: 80%; height: 80vh; display: flex; flex-direction: column;">
-            <div class="modal-header">
-                <h3>Discovery Response Letter</h3>
-                <div>
-                    <button class="btn btn-secondary" onclick="exportResponseLetter('docx')">Export as DOCX</button>
-                    <button class="btn btn-secondary" onclick="exportResponseLetter('pdf')">Export as PDF</button>
-                    <button class="modal-close" onclick="hideResponseLetterModal()">&times;</button>
-                </div>
-            </div>
-            <div class="modal-body" style="flex-grow: 1; overflow: auto; margin-bottom: 0;">
-                <div id="letter-editor" contenteditable="true" style="width: 100%; height: 100%; padding: 20px; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; white-space: pre-wrap;">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="hideResponseLetterModal()">Close</button>
-                <button class="btn btn-primary" onclick="saveResponseLetter()">Save Draft</button>
             </div>
         </div>
     </div>
@@ -2490,24 +2712,92 @@ const initialData = {
             const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
             if (!letterData) return;
 
-            const editor = document.getElementById('letter-editor');
-            editor.innerHTML = '<div class="loading-spinner"></div> Generating letter...';
+            const generateButton = document.querySelector('[data-action="generate-letter"]');
+            generateButton.disabled = true;
+
+            const previewContent = document.getElementById('letter-preview-content');
+            previewContent.innerHTML = '';
+            letterSections = { header: '', requests: [], conclusion: '' };
 
             try {
-                const letterContent = await window.electronAPI.generateResponseLetter({
-                    caseName: caseData.caseName,
-                    letterDescription: letterData.description,
-                    requests: letterData.requests
+                // --- 1. Generate Header ---
+                updateGenerationProgress('header', 'Generating Header...', 20);
+                await window.electronAPI.generateLetterSection({
+                    type: 'header',
+                    recipientEmails: ['jklecan@jshfirm.com', 'bblair@jshfirm.com'],
+                    caseCaption: "Gardner v Navajo County, et al.",
+                    caseInfo: "US District Court, CV-23-08594-SRB-ASB",
+                    salutationNames: "Jack and Brandi",
+                    responseDate: "May 28, 2024" // This should be dynamic from your data model
                 });
 
-                if (letterContent.success) {
-                    editor.innerHTML = letterContent.html;
-                } else {
-                    editor.innerHTML = `<div style="color: red;">Error generating letter: ${letterContent.error}</div>`;
+                // --- 2. Generate Body for each Request ---
+                const totalRequests = letterData.requests.filter(r => r.objection).length;
+                let processedCount = 0;
+                for (const request of letterData.requests) {
+                    // Only process requests that have an objection to be rebutted
+                    if (request.objection && request.reply) {
+                        const progress = 40 + (40 * (processedCount / totalRequests));
+                        updateGenerationProgress('body', `Processing Request #${request.id}...`, progress);
+                        
+                        await window.electronAPI.generateLetterSection({
+                            type: 'request',
+                            request: request,
+                            // You might need a way to summarize the request topic
+                            requestTopic: "any spoken statements made by Amanda Gardner" 
+                        });
+                        processedCount++;
+                    }
                 }
+
+                // --- 3. Generate Conclusion ---
+                updateGenerationProgress('conclusion', 'Generating Conclusion...', 90);
+                await window.electronAPI.generateLetterSection({
+                    type: 'conclusion',
+                });
+
+                // --- 4. Final Assembly ---
+                // The `onLetterProgress` listener handles the assembly.
+                // We'll add the page numbers at the end.
+                addPageNumbers();
+
+                updateGenerationProgress('formatting', 'Letter generation complete!', 100);
+                setTimeout(() => {
+                    document.querySelector('.generation-progress').style.display = 'none';
+                }, 3000);
+
             } catch (error) {
-                editor.innerHTML = `<div style="color: red;">Error: ${error.message}</div>`;
+                console.error('Error generating letter:', error);
+                document.querySelector('.progress-status').textContent = `Error: ${error.message}`;
+                document.querySelector('.progress-status').style.color = 'var(--status-error)';
+            } finally {
+                generateButton.disabled = false;
             }
+        }
+
+        // Add the new addPageNumbers helper function
+        function addPageNumbers() {
+            const content = document.getElementById('letter-preview-content');
+            const pageCount = document.querySelectorAll('.interrogatory-section').length / 2; // Rough estimate
+            
+            // In the provided document, page numbers appear on each physical page.
+            // We can simulate this by appending a final page number. For a multi-page
+            // preview, this would be more complex. This is a visual aid.
+            const lastPageNum = Math.max(1, Math.ceil(pageCount / 3)); // Assume 3 items per page
+            
+            // Find all closing h3 tags for interrogatories and add page numbers after some of them
+            const sections = content.querySelectorAll('.interrogatory-section');
+            if (sections.length > 5) { // Add a page number after the 5th section for example
+                const pageBreakElement = document.createElement('div');
+                pageBreakElement.className = 'page-number';
+                pageBreakElement.textContent = '2';
+                sections[5].insertAdjacentElement('afterend', pageBreakElement);
+            }
+
+            const finalPageNum = document.createElement('div');
+            finalPageNum.className = 'page-number';
+            finalPageNum.textContent = `${sections.length}`;
+            content.appendChild(finalPageNum);
         }
 
         async function saveResponseLetter() {
@@ -2629,74 +2919,6 @@ const initialData = {
             return stages.indexOf(stage);
         }
 
-        async function generateResponseLetter() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-            if (!caseData) return;
-
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
-            if (!letterData) return;
-
-            const generateButton = document.querySelector('[data-action="generate-letter"]');
-            generateButton.disabled = true;
-
-            try {
-                // Reset letter sections
-                letterSections = {
-                    header: '',
-                    requests: [],
-                    conclusion: ''
-                };
-
-                // Stage 1: Setup
-                updateGenerationProgress('setup', 'Preparing document generation...', 10);
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate setup time
-
-                // Stage 2: Header
-                const headerResult = await window.electronAPI.generateLetterSection({
-                    type: 'header',
-                    caseName: caseData.caseName,
-                    letterDescription: letterData.description
-                });
-
-                // Stage 3: Body (Process each request)
-                const totalRequests = letterData.requests.length;
-                
-                for (let i = 0; i < totalRequests; i++) {
-                    const request = letterData.requests[i];
-                    const progress = 40 + (40 * (i / totalRequests));
-                    
-                    const requestResult = await window.electronAPI.generateLetterSection({
-                        type: 'request',
-                        requestNumber: i + 1,
-                        requestText: request.text,
-                        objectionText: request.objection,
-                        replyText: request.reply
-                    });
-                }
-
-                // Stage 4: Conclusion
-                const conclusionResult = await window.electronAPI.generateLetterSection({
-                    type: 'conclusion'
-                });
-
-                // Stage 5: Final Formatting
-                updateGenerationProgress('formatting', 'Applying final formatting...', 95);
-                
-                // Complete
-                updateGenerationProgress('formatting', 'Letter generation complete!', 100);
-                setTimeout(() => {
-                    document.querySelector('.generation-progress').style.display = 'none';
-                }, 2000);
-
-            } catch (error) {
-                console.error('Error generating letter:', error);
-                document.querySelector('.progress-status').textContent = `Error: ${error.message}`;
-                document.querySelector('.progress-status').style.color = 'var(--status-error)';
-            } finally {
-                generateButton.disabled = false;
-            }
-        }
-
         function zoomIn() {
             if (currentZoomLevel < 200) {
                 currentZoomLevel += 25;
@@ -2801,74 +3023,6 @@ const initialData = {
                 case 'conclusion': return 85;
                 case 'formatting': return 95;
                 default: return 0;
-            }
-        }
-
-        async function generateResponseLetter() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-            if (!caseData) return;
-
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
-            if (!letterData) return;
-
-            const generateButton = document.querySelector('[data-action="generate-letter"]');
-            generateButton.disabled = true;
-
-            try {
-                // Reset letter sections
-                letterSections = {
-                    header: '',
-                    requests: [],
-                    conclusion: ''
-                };
-
-                // Stage 1: Setup
-                updateGenerationProgress('setup', 'Preparing document generation...', 10);
-                await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate setup time
-
-                // Stage 2: Header
-                const headerResult = await window.electronAPI.generateLetterSection({
-                    type: 'header',
-                    caseName: caseData.caseName,
-                    letterDescription: letterData.description
-                });
-
-                // Stage 3: Body (Process each request)
-                const totalRequests = letterData.requests.length;
-                
-                for (let i = 0; i < totalRequests; i++) {
-                    const request = letterData.requests[i];
-                    const progress = 40 + (40 * (i / totalRequests));
-                    
-                    const requestResult = await window.electronAPI.generateLetterSection({
-                        type: 'request',
-                        requestNumber: i + 1,
-                        requestText: request.text,
-                        objectionText: request.objection,
-                        replyText: request.reply
-                    });
-                }
-
-                // Stage 4: Conclusion
-                const conclusionResult = await window.electronAPI.generateLetterSection({
-                    type: 'conclusion'
-                });
-
-                // Stage 5: Final Formatting
-                updateGenerationProgress('formatting', 'Applying final formatting...', 95);
-                
-                // Complete
-                updateGenerationProgress('formatting', 'Letter generation complete!', 100);
-                setTimeout(() => {
-                    document.querySelector('.generation-progress').style.display = 'none';
-                }, 2000);
-
-            } catch (error) {
-                console.error('Error generating letter:', error);
-                document.querySelector('.progress-status').textContent = `Error: ${error.message}`;
-                document.querySelector('.progress-status').style.color = 'var(--status-error)';
-            } finally {
-                generateButton.disabled = false;
             }
         }
 
@@ -3108,12 +3262,13 @@ const initialData = {
             menuToggle.classList.toggle('active');
         }
 
-        function showUserInfo() {
+        async function showUserInfo() {
             // Hide all other views
             document.body.className = 'profile-view-active';
             
             // Load and display system information
-            document.getElementById('workspace-path').textContent = window.electronAPI.getWorkspacePath();
+            const workspacePath = await window.electronAPI.getWorkspacePath();
+            document.getElementById('workspace-path').textContent = workspacePath;
             document.getElementById('os-info').textContent = window.electronAPI.getOSInfo();
             
             // Load saved user profile data
@@ -3121,89 +3276,85 @@ const initialData = {
         }
 
         async function loadUserProfile() {
+            const profileView = document.getElementById('user-profile-view');
+            const saveButton = document.getElementById('save-profile-btn');
+            const statusText = document.getElementById('profile-status-text');
+
             try {
+                // Show loading state
+                profileView.classList.add('loading', 'with-text');
+                profileView.setAttribute('data-loading-text', 'Loading profile...');
+                saveButton.disabled = true;
+                statusText.textContent = 'Loading profile...';
+
                 const profile = await window.electronAPI.loadUserProfile();
+                
                 if (profile) {
+                    // Fill in form fields
                     document.getElementById('profile-name').value = profile.name || '';
                     document.getElementById('profile-title').value = profile.title || '';
                     document.getElementById('profile-email').value = profile.email || '';
                     document.getElementById('profile-phone').value = profile.phone || '';
                     document.getElementById('profile-org').value = profile.organization || '';
-                    document.getElementById('profile-org-address').value = profile.orgAddress || '';
+                    document.getElementById('profile-org-address').value = profile.address || '';
                     document.getElementById('profile-bar-number').value = profile.barNumber || '';
                     document.getElementById('profile-signature').value = profile.signature || '';
                 }
 
-                // Enable all form inputs after loading
-                const inputs = document.querySelectorAll('.form-input');
-                inputs.forEach(input => {
-                    input.disabled = false;
-                });
+                // Clear loading state
+                profileView.classList.remove('loading', 'with-text');
+                saveButton.disabled = false;
+                statusText.textContent = '';
+
             } catch (error) {
-                console.error('Error loading user profile:', error);
-                
-                // Show error message in the action bar
-                const actionBar = document.querySelector('.action-bar');
-                const errorMsg = document.createElement('div');
-                errorMsg.textContent = `Error loading profile: ${error.message}`;
-                errorMsg.style.color = 'var(--status-error)';
-                actionBar.appendChild(errorMsg);
-                
-                setTimeout(() => {
-                    errorMsg.remove();
-                }, 5000);
+                console.error('Error loading profile:', error);
+                profileView.classList.remove('loading');
+                saveButton.disabled = false;
+                statusText.textContent = 'Error loading profile.';
             }
         }
 
         async function saveUserProfile() {
-            const saveButton = document.querySelector('[onclick="saveUserProfile()"]');
-            const actionBar = document.querySelector('.action-bar');
-            
+            const profileView = document.getElementById('user-profile-view');
+            const saveButton = document.getElementById('save-profile-btn');
+            const statusText = document.getElementById('profile-status-text');
+
             try {
+                // Show saving state
+                profileView.classList.add('loading', 'with-text');
+                profileView.setAttribute('data-loading-text', 'Saving profile...');
                 saveButton.disabled = true;
-                saveButton.innerHTML = '<div class="loading-spinner"></div> Saving...';
-                
-                const profile = {
+                statusText.textContent = 'Saving profile...';
+
+                const profileData = {
                     name: document.getElementById('profile-name').value,
                     title: document.getElementById('profile-title').value,
                     email: document.getElementById('profile-email').value,
                     phone: document.getElementById('profile-phone').value,
                     organization: document.getElementById('profile-org').value,
-                    orgAddress: document.getElementById('profile-org-address').value,
+                    address: document.getElementById('profile-org-address').value,
                     barNumber: document.getElementById('profile-bar-number').value,
                     signature: document.getElementById('profile-signature').value
                 };
 
-                const result = await window.electronAPI.saveUserProfile(profile);
+                const result = await window.electronAPI.saveUserProfile(profileData);
                 
-                if (!result.success) {
+                if (result.success) {
+                    statusText.textContent = 'Profile saved successfully!';
+                    setTimeout(() => {
+                        statusText.textContent = '';
+                    }, 3000);
+                } else {
                     throw new Error(result.error || 'Failed to save profile');
                 }
-                
-                // Show success message
-                const successMsg = document.createElement('div');
-                successMsg.textContent = 'Profile saved successfully!';
-                successMsg.style.color = 'var(--status-success)';
-                actionBar.appendChild(successMsg);
-                
-                setTimeout(() => {
-                    successMsg.remove();
-                }, 3000);
+
             } catch (error) {
-                console.error('Error saving user profile:', error);
-                
-                // Show error message
-                const errorMsg = document.createElement('div');
-                errorMsg.textContent = `Error: ${error.message}`;
-                errorMsg.style.color = 'var(--status-error)';
-                actionBar.appendChild(errorMsg);
-                
-                setTimeout(() => {
-                    errorMsg.remove();
-                }, 5000);
+                console.error('Error saving profile:', error);
+                statusText.textContent = 'Error saving profile.';
             } finally {
+                // Clear loading state
+                profileView.classList.remove('loading', 'with-text');
                 saveButton.disabled = false;
-                saveButton.textContent = 'Save Changes';
             }
         }
 
@@ -3226,12 +3377,12 @@ const initialData = {
         };
     </script>
 
-    <!-- Add Case Modal -->
+    <!-- MODALS -->
     <div class="modal-overlay" id="add-case-modal">
         <div class="modal">
             <div class="modal-header">
                 <h3>Add New Case</h3>
-                <button class="modal-close" onclick="hideAddCaseModal()">&times;</button>
+                <button class="modal-close" onclick="hideAddCaseModal()">×</button>
             </div>
             <div class="modal-body">
                 <div class="input-group">
@@ -3246,12 +3397,11 @@ const initialData = {
         </div>
     </div>
 
-    <!-- Edit Case Modal -->
     <div class="modal-overlay" id="edit-case-modal">
         <div class="modal">
             <div class="modal-header">
                 <h3>Edit Case Name</h3>
-                <button class="modal-close" onclick="hideEditCaseModal()">&times;</button>
+                <button class="modal-close" onclick="hideEditCaseModal()">×</button>
             </div>
             <div class="modal-body">
                 <div class="input-group">
@@ -3266,12 +3416,11 @@ const initialData = {
         </div>
     </div>
 
-    <!-- Add the edit letter modal to the HTML -->
     <div class="modal-overlay" id="edit-letter-modal">
         <div class="modal">
             <div class="modal-header">
                 <h3>Edit Request Letter Name</h3>
-                <button class="modal-close" onclick="hideEditLetterModal()">&times;</button>
+                <button class="modal-close" onclick="hideEditLetterModal()">×</button>
             </div>
             <div class="modal-body">
                 <div class="input-group">
@@ -3282,6 +3431,58 @@ const initialData = {
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hideEditLetterModal()">Cancel</button>
                 <button class="btn btn-primary" onclick="saveEditedLetter()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="response-letter-modal">
+        <div class="modal" style="max-width: 80%; height: 80vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3>Discovery Response Letter</h3>
+                <div>
+                    <button class="btn btn-secondary" onclick="exportResponseLetter('docx')">Export as DOCX</button>
+                    <button class="btn btn-secondary" onclick="exportResponseLetter('pdf')">Export as PDF</button>
+                    <button class="modal-close" onclick="hideResponseLetterModal()">×</button>
+                </div>
+            </div>
+            <div class="modal-body" style="flex-grow: 1; overflow: auto; margin-bottom: 0;">
+                <div id="letter-editor" contenteditable="true" style="width: 100%; height: 100%; padding: 20px; font-family: 'Times New Roman', Times, serif; font-size: 12pt; line-height: 1.5; white-space: pre-wrap;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideResponseLetterModal()">Close</button>
+                <button class="btn btn-primary" onclick="saveResponseLetter()">Save Draft</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="version-history-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Version History</h3>
+                <button class="modal-close" onclick="hideVersionHistoryModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="version-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideVersionHistoryModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="preview-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Preview Version</h3>
+                <button class="modal-close" onclick="hidePreviewModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div id="preview-content"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hidePreviewModal()">Close</button>
+                <button class="btn btn-primary" onclick="restoreVersion()">Restore This Version</button>
             </div>
         </div>
     </div>
@@ -3297,7 +3498,8 @@ const initialData = {
             
             <div class="action-bar">
                 <button class="btn btn-secondary" data-action="back-to-previous">← Back</button>
-                <button class="btn btn-primary" onclick="saveUserProfile()">Save Changes</button>
+                <button id="save-profile-btn" class="btn btn-primary" onclick="saveUserProfile()">Save Changes</button>
+                <span id="profile-status-text" style="color: var(--text-secondary); margin-left: 16px;"></span>
             </div>
 
             <div class="profile-grid">

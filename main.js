@@ -11,67 +11,9 @@ const html2pdf = require('html-pdf');
 const PDFDocument = require('pdfkit');
 const mammoth = require('mammoth');
 
-const objectionLibrary = {
-  "qualified response": {
-    argument: "Responses to discovery requests that are 'subject to' and 'without waiving objections' are improper, confusing, misleading, and without basis in the Federal Rules of Civil Procedure, and waive the objections.",
-    cases: [
-      "Fay Avenue Properties, LLC v. Travelers Property Casualty Companies of America, 2014 WL 12570974, at *1 (S.D. Cal. 2014)",
-      "Herrera v. AllianceOne Receivable Mgmt., Inc., 2016 WL 1182751, at *3 (S.D. Cal. Mar. 28, 2016)"
-    ]
-  },
-  "multiple subparts": {
-    argument: "Not all subparts are 'discrete subparts' under Rule 33(a)(1). Interrogatory subparts are to be counted as one interrogatory if they are logically or factually subsumed within and necessarily related to the primary question.",
-    cases: [
-      "Trevino v. ACB American Inc., 232 F.R.D. 612, 614 (N.D. Cal. 2006)"
-    ]
-  },
-  "vague": {
-    argument: "A party making a vagueness objection bears the burden to show such vagueness or ambiguity by demonstrating that more than 'mere reason and common sense' is needed to attribute ordinary definitions to the terms.",
-    cases: [
-      "Moss v. Blue Cross & Blue Shield of Kan., Inc., 241 F.R.D. 683, 696 (D.Kan.2007)"
-    ]
-  },
-  "not limited in time or scope": {
-    argument: "The objection is a conclusory boilerplate allegation. The request is appropriately limited to the relevant time period and subject matter of the litigation.",
-    cases: []
-  },
-  "third party custody": {
-    argument: "This is an invalid objection. Rule 33 imposes a duty on the responding party to secure all information available to it, including information possessed by its officers, agents, and in some cases, corporate subsidiaries.",
-    cases: [
-      "Thomas v. Cate, 715 F. Supp. 2d 1012, 1032 (E.D. Cal. 2010)",
-      "General Dynamics Corp. v. Selb Mfg. Co., 481 F.2d 1204, 1211 (8th Cir.1973)"
-    ]
-  },
-  "overly broad": {
-    argument: "A party opposing discovery as allegedly overbroad bears the burden of showing why discovery should be denied. A conclusory allegation is insufficient.",
-    cases: [
-      "SEC v. Brady, 238 F.R.D. 429, 437 (N.D.Tex.2006)"
-    ]
-  },
-  "premature/early discovery": {
-    argument: "A party must respond to interrogatories based on the information presently available and has an obligation to review appropriate materials and respond to the fullest extent possible. A reasonable effort to respond must be made.",
-    cases: [
-      "Fredrics v. City of Scottsdale, 2022 WL 60546, at *1 (D. Ariz. Jan. 6, 2022)"
-    ]
-  },
-  "unduly burdensome": {
-    argument: "To sustain an 'unduly burdensome' objection, a party must provide a factual basis for the claim. Courts must balance the burden on the interrogated party against the benefit to the discovering party.",
-    cases: [
-      "Hoffman v. United Telecommunications, Inc., 117 F.R.D. 436, 438 (D.Kan.1987)"
-    ]
-  },
-  "work product": {
-    argument: "General boilerplate objections are insufficient to assert the work product doctrine. A party must establish that the information it seeks to withhold was prepared in anticipation of litigation and provide a privilege log.",
-    cases: [
-      "Rogers v. Giurbino, 288 F.R.D. 469, 487 (S.D. Cal. 2012)"
-    ]
-  },
-  "unclassifiable": { // Fallback
-    argument: "A general persuasive argument is required.",
-    cases: []
-  }
-};
-
+// Load externalized modules
+const objectionLibrary = require('./objectionLibrary.json');
+const prompts = require('./prompts.js');
 
 require('dotenv').config();
 
@@ -290,56 +232,7 @@ async function handleUploadAndProcess(event, requestsFromUI) {
       progress: 35
     });
 
-    const extractionPrompt = `
-      You are an AI data extraction expert. Your task is to find objections to specific interrogatory requests in a legal document.
-
-      --- Original Requests ---
-      ${requestsFormatted}
-      --- End of Original Requests ---
-
-      --- Raw Text from Opponent's Response Document ---
-      ${rawText}
-      --- End of Raw Text ---
-
-      INSTRUCTIONS:
-      1. For each numbered request above, find the corresponding objection/response in the opponent's document.
-      2. Return a JSON array of objects, where each object has:
-         - "id": the request number (as a number)
-         - "objection": the complete text of the objection/response for that specific request
-      3. If no objection is found for a request, set "objection" to null
-      4. Ensure each objection is matched to the correct request number
-      5. Include ONLY the actual objection text, not the original request text
-      6. Maintain the exact wording of each objection
-      7. IMPORTANT: If you cannot find ANY objections in the document, return {"error": "No objections found in document"}
-
-      Return ONLY the JSON array or error object.
-    `;
-
-    // Update progress during AI processing
-    const progressUpdates = [
-      { progress: 45, message: 'Analyzing document structure...' },
-      { progress: 55, message: 'Identifying request sections...' },
-      { progress: 65, message: 'Locating objection responses...' },
-      { progress: 75, message: 'Extracting objection text...' },
-      { progress: 85, message: 'Finalizing matches...' }
-    ];
-
-    let currentUpdateIndex = 0;
-    const progressInterval = setInterval(() => {
-      if (currentUpdateIndex < progressUpdates.length) {
-        const update = progressUpdates[currentUpdateIndex];
-        parentWindow.webContents.send('upload-progress', {
-          type: 'progress',
-          stage: 'processing',
-          message: update.message,
-          progress: update.progress
-        });
-        currentUpdateIndex++;
-      }
-    }, 2000);
-
-    const result = await model.generateContent(extractionPrompt);
-    clearInterval(progressInterval);
+    const result = await model.generateContent(prompts.extractionPrompt(requestsFormatted, rawText));
 
     // Phase 4: Final Processing (85-100%)
     parentWindow.webContents.send('upload-progress', { 
@@ -401,15 +294,8 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    const deconstructorPrompt = `
-      Analyze the following legal objection text. Identify every distinct legal objection made from the following list: [${Object.keys(objectionLibrary).join(", ")}].
-      Return your findings as a JSON array of strings. For example: ["vague", "overly broad", "work product"].
-      Do not explain yourself. Respond ONLY with the JSON array.
-
-      Objection Text to Analyze: "${objectionText}"
-    `;
     console.log("Deconstructor: Identifying objection types...");
-    const deconstructorResult = await model.generateContent(deconstructorPrompt);
+    const deconstructorResult = await model.generateContent(prompts.deconstructorPrompt(objectionText, Object.keys(objectionLibrary).join(", ")));
     const deconstructorResponseText = deconstructorResult.response.text();
     const jsonMatch = deconstructorResponseText.match(/\[.*\]/s);
     if (!jsonMatch) throw new Error("Deconstructor AI failed to return a valid JSON array.");
@@ -419,34 +305,7 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
     console.log("Drafter: Generating individual refutation paragraphs...");
     const draftPromises = identifiedObjections.map(objectionKey => {
       const rule = objectionLibrary[objectionKey] || objectionLibrary["unclassifiable"];
-      const drafterPrompt = `
-              You are an expert legal assistant AI. Your task is to draft a single, persuasive paragraph refuting a specific discovery objection, following a precise chain of thought.
-              
-              --- RULE TO APPLY ---
-              - Objection Type: "${objectionKey}"
-              - Core Argument: "${rule.argument}"
-              - Relevant Cases: [${rule.cases.join(", ")}]
-              --- END OF RULE ---
-
-              --- DISPUTE CONTEXT ---
-              - Plaintiff's Request: "${requestText}"
-              - Full Text of Defendant's Objection: "${objectionText}"
-              --- END OF CONTEXT ---
-
-              --- ADDITIONAL USER-PROVIDED CONTEXT TO CONSIDER ---
-              ${contextText ? contextText : "None provided."}
-              --- END OF ADDITIONAL CONTEXT ---
-
-              INSTRUCTIONS:
-              1.  **Integrate Context:** Carefully consider the "ADDITIONAL USER-PROVIDED CONTEXT". If it contains specific facts or case law, prioritize using it to make your argument more specific and powerful.
-              2.  **State the Law:** Begin by stating the Core Argument for the specified Objection Type. You MUST cite one or more of the Relevant Cases if provided, or cases from the user's context.
-              3.  **Apply to Facts:** Immediately after, explain WHY the Defendant's Objection is improper in the context of the specific Plaintiff's Request, directly refuting their reasoning. Use details from the user context if available.
-              4.  **Demand Action:** Conclude the paragraph with a professional instruction, like "Please supplement your response."
-              5.  **Final Output:** Provide ONLY the single, complete legal paragraph.
-              
-              Draft the paragraph now.
-            `;
-      return model.generateContent(drafterPrompt).then(result => ({
+      return model.generateContent(prompts.drafterPrompt(objectionKey, rule, requestText, objectionText, contextText)).then(result => ({
           key: objectionKey,
           paragraph: result.response.text()
       }));
@@ -532,28 +391,7 @@ async function handleRequestLetterUpload(event) {
       progress: 50
     });
 
-    const extractionPrompt = `
-      You are an AI data extraction expert. Your task is to extract interrogatory requests from a legal document.
-      
-      --- Raw Text from Request Document ---
-      ${rawText}
-      --- End of Raw Text ---
-      
-      INSTRUCTIONS:
-      1. Find all interrogatory requests in the document.
-      2. For each request:
-         - Extract the request number
-         - Extract the complete text of the request
-      3. Return a JSON array of objects, where each object has:
-         - "id": the request number (as a number)
-         - "text": the complete text of the request
-      4. Include ONLY actual interrogatory requests.
-      5. Maintain the exact wording of each request.
-      
-      Return ONLY the JSON array.
-    `;
-
-    const result = await model.generateContent(extractionPrompt);
+    const result = await model.generateContent(prompts.requestExtractionPrompt(rawText));
     
     // Update progress: AI processing complete
     parentWindow.webContents.send('request-progress', { 
@@ -829,6 +667,11 @@ async function handleGenerateLetterSection(event, data) {
   if (!parentWindow) return;
 
   try {
+    const userProfile = await handleLoadUserProfile();
+    if (!userProfile) {
+      throw new Error('User profile not found. Please set up your profile first.');
+    }
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) throw new Error("API key not found.");
     
@@ -841,83 +684,32 @@ async function handleGenerateLetterSection(event, data) {
     switch (data.type) {
       case 'header':
         logMessage = 'Generating letter header...';
-        prompt = `
-          Generate the header section of a formal legal discovery dispute letter. Include:
-          1. Current date
-          2. Law firm letterhead (use placeholder info)
-          3. Recipient information (use placeholder)
-          4. Re: line with "${data.caseName} - ${data.letterDescription}"
-          5. Opening paragraph explaining this is a discovery dispute letter
-
-          Return ONLY the HTML for this section. Use semantic HTML and inline CSS for proper legal document formatting.
-        `;
+        prompt = prompts.headerPrompt(data, userProfile);
         break;
 
       case 'request':
-        logMessage = `Processing Request #${data.requestNumber}...`;
-        prompt = `
-          Generate a section for Request #${data.requestNumber} in a discovery dispute letter. Include:
-          1. Request text: "${data.requestText}"
-          2. Objection: "${data.objectionText}"
-          3. Our Reply: "${data.replyText}"
-
-          Format this as a properly numbered section with appropriate spacing and formatting.
-          Return ONLY the HTML for this section. Use semantic HTML and inline CSS for proper legal document formatting.
-        `;
+        logMessage = `Processing Request #${data.request.id}...`;
+        prompt = prompts.requestPrompt(data);
         break;
 
       case 'conclusion':
         logMessage = 'Generating conclusion section...';
-        prompt = `
-          Generate the conclusion section of a discovery dispute letter. Include:
-          1. Summary paragraph requesting supplemental responses
-          2. Professional closing
-          3. Signature block (use placeholder attorney information)
-          4. Certificate of service (use placeholder)
-
-          Return ONLY the HTML for this section. Use semantic HTML and inline CSS for proper legal document formatting.
-        `;
+        prompt = prompts.conclusionPrompt(userProfile);
         break;
-
+        
       default:
         throw new Error('Invalid section type');
     }
 
-    // Log to terminal
-    console.log('\x1b[36m%s\x1b[0m', logMessage); // Cyan color for visibility
-
-    // Send progress to renderer
-    parentWindow.webContents.send('letter-progress', {
-      type: 'section-start',
-      section: data.type,
-      message: logMessage
-    });
-
+    parentWindow.webContents.send('letter-progress', { type: 'section-start', section: data.type, message: logMessage });
     const result = await model.generateContent(prompt);
-    const html = result.response.text();
-
-    // Log completion
-    console.log('\x1b[32m%s\x1b[0m', `✓ ${logMessage.replace('...', ' completed')}`); // Green color for success
-
-    // Send completion to renderer
-    parentWindow.webContents.send('letter-progress', {
-      type: 'section-complete',
-      section: data.type,
-      html: html
-    });
-
+    const html = result.response.text().replace(/```html|```/g, '').trim();
+    parentWindow.webContents.send('letter-progress', { type: 'section-complete', section: data.type, html: html });
     return { success: true, html };
+
   } catch (error) {
-    // Log error
-    console.error('\x1b[31m%s\x1b[0m', `Error: ${error.message}`); // Red color for errors
-
-    // Send error to renderer
-    parentWindow.webContents.send('letter-progress', {
-      type: 'error',
-      section: data.type,
-      error: error.message
-    });
-
+    console.error('\x1b[31m%s\x1b[0m', `Error: ${error.message}`);
+    parentWindow.webContents.send('letter-progress', { type: 'error', section: data.type, error: error.message });
     return { success: false, error: error.message };
   }
 }

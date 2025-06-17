@@ -30,6 +30,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadUserProfile: () => ipcRenderer.invoke('load-user-profile'),
 
   // System information
-  getWorkspacePath: () => process.cwd(),
+  getWorkspacePath: () => ipcRenderer.invoke('get-user-data-path'),
   getOSInfo: () => process.platform + ' ' + process.version
 });
