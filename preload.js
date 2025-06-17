@@ -23,5 +23,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Letter generation functions
   generateLetterSection: (data) => ipcRenderer.invoke('generate-letter-section', data),
-  onLetterProgress: (callback) => ipcRenderer.on('letter-progress', (_event, value) => callback(value))
+  onLetterProgress: (callback) => ipcRenderer.on('letter-progress', (_event, value) => callback(value)),
+
+  // User profile functions
+  saveUserProfile: (profileData) => ipcRenderer.invoke('save-user-profile', profileData),
+  loadUserProfile: () => ipcRenderer.invoke('load-user-profile'),
+
+  // System information
+  getWorkspacePath: () => process.cwd(),
+  getOSInfo: () => process.platform + ' ' + process.version
 });

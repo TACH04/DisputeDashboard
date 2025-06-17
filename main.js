@@ -80,6 +80,9 @@ const DATA_DIR = path.join(app.getPath('userData'), 'case_data');
 const BACKUP_DIR = path.join(app.getPath('userData'), 'backups');
 const CURRENT_DATA_VERSION = '1.0';
 
+// User profile storage
+const USER_PROFILE_FILE = path.join(app.getPath('userData'), 'user_profile.json');
+
 // Ensure data directories exist
 async function initializeDataDirectories() {
     try {
@@ -921,3 +924,30 @@ async function handleGenerateLetterSection(event, data) {
 
 // Add to your IPC handlers
 ipcMain.handle('generate-letter-section', handleGenerateLetterSection);
+
+async function handleSaveUserProfile(event, profileData) {
+  try {
+    await fs.promises.writeFile(USER_PROFILE_FILE, JSON.stringify(profileData, null, 2));
+    return { success: true };
+  } catch (error) {
+    console.error('Error saving user profile:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function handleLoadUserProfile() {
+  try {
+    if (fs.existsSync(USER_PROFILE_FILE)) {
+      const data = await fs.promises.readFile(USER_PROFILE_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+    return null;
+  } catch (error) {
+    console.error('Error loading user profile:', error);
+    return null;
+  }
+}
+
+// Add to your IPC handlers
+ipcMain.handle('save-user-profile', handleSaveUserProfile);
+ipcMain.handle('load-user-profile', handleLoadUserProfile);
