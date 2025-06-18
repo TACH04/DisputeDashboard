@@ -1804,37 +1804,80 @@ const initialData = {
         let appData = JSON.parse(JSON.stringify(initialData));
         
         // --- STATE MANAGEMENT ---
-        let currentCaseId = null;
-        let currentLetterId = null;
-        let currentFocusIndex = -1;
-
-        // State variables for editing
-        let currentEditingCaseId = null;
-        let currentEditingLetterId = null;
+        let appState = {
+            currentCaseId: null,
+            currentLetterId: null,
+            currentFocusIndex: -1,
+            // For editing
+            currentEditingCaseId: null,
+            currentEditingLetterId: null,
+            // For navigation
+            viewHistory: []
+        };
 
         // --- VIEW SWITCHING & RENDERING ---
         function showCasesDashboard() {
-            document.body.className = 'cases-view-active';
+            const newView = 'cases-view-active';
+            if (appState.viewHistory[appState.viewHistory.length - 1] !== newView) {
+                appState.viewHistory.push(newView);
+            }
+            document.body.className = newView;
             renderCasesDashboard();
         }
 
         function showRequestLettersView(caseId) {
-            currentCaseId = caseId;
-            currentLetterId = null;
-            document.body.className = 'request-letters-active';
+            const newView = 'request-letters-active';
+            if (appState.viewHistory[appState.viewHistory.length - 1] !== newView) {
+                appState.viewHistory.push(newView);
+            }
+            appState.currentCaseId = caseId;
+            appState.currentLetterId = null;
+            document.body.className = newView;
             renderRequestLettersView();
         }
 
         function showDisputeListView(letterId) {
-            currentLetterId = letterId;
-            document.body.className = 'dispute-list-active';
+            const newView = 'dispute-list-active';
+            if (appState.viewHistory[appState.viewHistory.length - 1] !== newView) {
+                appState.viewHistory.push(newView);
+            }
+            appState.currentLetterId = letterId;
+            document.body.className = newView;
             renderDisputeListView();
         }
 
         function showFocusView(requestIndex) {
-            currentFocusIndex = requestIndex;
-            document.body.className = 'focus-mode-active';
+            const newView = 'focus-mode-active';
+            if (appState.viewHistory[appState.viewHistory.length - 1] !== newView) {
+                appState.viewHistory.push(newView);
+            }
+            appState.currentFocusIndex = requestIndex;
+            document.body.className = newView;
             renderFocusView();
+        }
+
+        function goBack() {
+            if (appState.viewHistory.length > 1) {
+                appState.viewHistory.pop(); // Remove current view
+                const previousView = appState.viewHistory[appState.viewHistory.length - 1];
+                document.body.className = previousView;
+                
+                // Re-render the view based on the view type
+                switch (previousView) {
+                    case 'cases-view-active':
+                        renderCasesDashboard();
+                        break;
+                    case 'request-letters-active':
+                        renderRequestLettersView();
+                        break;
+                    case 'dispute-list-active':
+                        renderDisputeListView();
+                        break;
+                    case 'focus-mode-active':
+                        renderFocusView();
+                        break;
+                }
+            }
         }
         
         function renderCasesDashboard() {
@@ -1923,7 +1966,7 @@ const initialData = {
         }
 
         function renderRequestLettersView() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return showCasesDashboard();
 
             document.getElementById('request-letters-header').textContent = caseData.caseName;
@@ -1957,11 +2000,11 @@ const initialData = {
         }
 
         function renderDisputeListView() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return showCasesDashboard();
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
-            if (!letterData) return showRequestLettersView(currentCaseId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
+            if (!letterData) return showRequestLettersView(appState.currentCaseId);
 
             document.getElementById('case-name-header').textContent = `${caseData.caseName} - ${letterData.description}`;
             const tableBody = document.getElementById('table-body');
@@ -1991,14 +2034,14 @@ const initialData = {
         }
 
         function renderFocusView() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-            if (!caseData) return showDisputeListView(currentLetterId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
+            if (!caseData) return showDisputeListView(appState.currentLetterId);
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
-            if (!letterData) return showDisputeListView(currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
+            if (!letterData) return showDisputeListView(appState.currentLetterId);
 
-            const request = letterData.requests[currentFocusIndex];
-            if (!request) return showDisputeListView(currentLetterId);
+            const request = letterData.requests[appState.currentFocusIndex];
+            if (!request) return showDisputeListView(appState.currentLetterId);
             
             document.getElementById('focus-title').textContent = `Request ${request.id} of ${letterData.requests.length}`;
             
@@ -2024,14 +2067,14 @@ const initialData = {
         async function navigateFocus(direction) {
             if (!document.body.classList.contains('focus-mode-active')) return;
             
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return;
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
             if (!letterData) return;
 
             // Save current state before navigation
-            const currentRequest = letterData.requests[currentFocusIndex];
+            const currentRequest = letterData.requests[appState.currentFocusIndex];
             if (currentRequest) {
                 const objectionTextarea = document.getElementById('focus-objection-textarea');
                 const replyEditor = document.getElementById('focus-reply-editor');
@@ -2045,9 +2088,9 @@ const initialData = {
                 }
             }
             
-            const newIndex = currentFocusIndex + direction;
+            const newIndex = appState.currentFocusIndex + direction;
             if (newIndex >= 0 && newIndex < letterData.requests.length) {
-                currentFocusIndex = newIndex;
+                appState.currentFocusIndex = newIndex;
                 renderFocusView();
             }
             await autoSave();
@@ -2056,8 +2099,8 @@ const initialData = {
         async function handleGenerateReplies() {
             const button = document.querySelector('[data-action="focus-generate"]');
             const replyEditor = document.getElementById('focus-reply-editor');
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
-            const request = caseData.requestLetters[currentFocusIndex].requests[currentFocusIndex];
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
+            const request = caseData.requestLetters[appState.currentFocusIndex].requests[appState.currentFocusIndex];
             const objectionText = document.getElementById('focus-objection-textarea').value.trim();
 
             if (!objectionText) { alert("Please enter an objection first."); return; }
@@ -2091,10 +2134,10 @@ const initialData = {
             const statusBar = document.getElementById('dispute-status-bar');
             const progressBar = document.getElementById('dispute-progress-bar');
             
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return;
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
             if (!letterData) return;
 
             const requestsToProcess = letterData.requests.filter(r => r.objection && !r.reply);
@@ -2144,7 +2187,7 @@ const initialData = {
                         
                         // Update focus view if we're viewing this request
                         if (document.body.classList.contains('focus-mode-active')) {
-                            const currentRequest = letterData.requests[currentFocusIndex];
+                            const currentRequest = letterData.requests[appState.currentFocusIndex];
                             if (currentRequest && currentRequest.id === request.id) {
                                 const replyEditor = document.getElementById('focus-reply-editor');
                                 if (replyEditor) {
@@ -2199,17 +2242,18 @@ const initialData = {
                 showFocusView(parseInt(disputeRow.dataset.index));
             } else if (action) {
                 switch(action) {
+                    case 'go-back': goBack(); break;
                     case 'back-to-cases': showCasesDashboard(); break;
-                    case 'back-to-letters': showRequestLettersView(currentCaseId); break;
-                    case 'back-to-list': showDisputeListView(currentLetterId); break;
+                    case 'back-to-letters': showRequestLettersView(appState.currentCaseId); break;
+                    case 'back-to-list': showDisputeListView(appState.currentLetterId); break;
                     case 'focus-next': navigateFocus(1); break;
                     case 'focus-prev': navigateFocus(-1); break;
                     case 'focus-generate': handleGenerateReplies(); break;
                     case 'generate-all': handleGenerateAllReplies(); break;
                     case 'upload-request': window.electronAPI.uploadRequestLetter(); break;
                     case 'upload': 
-                        const currentCase = appData.cases.find(c => c.caseId === currentCaseId);
-                        const currentLetter = currentCase?.requestLetters.find(l => l.id === currentLetterId);
+                        const currentCase = appData.cases.find(c => c.caseId === appState.currentCaseId);
+                        const currentLetter = currentCase?.requestLetters.find(l => l.id === appState.currentLetterId);
                         if (currentLetter) {
                             window.electronAPI.uploadAndProcess(currentLetter.requests);
                         }
@@ -2274,7 +2318,7 @@ const initialData = {
                     break;
                 case 'focus-mode-active':
                     // Only update if we're viewing the same request
-                    if (currentCaseId === caseId && currentLetterId === letterId) {
+                    if (caseId === appState.currentCaseId && letterId === appState.currentLetterId) {
                         renderFocusView();
                     }
                     break;
@@ -2289,8 +2333,8 @@ const initialData = {
             const button = document.querySelector('[data-action="upload"]');
 
             // Store case and letter IDs at the time of upload
-            const uploadCaseId = currentCaseId;
-            const uploadLetterId = currentLetterId;
+            const uploadCaseId = appState.currentCaseId;
+            const uploadLetterId = appState.currentLetterId;
 
             const updateProgress = (message, progress) => {
                 if (progressSection) {
@@ -2357,7 +2401,7 @@ const initialData = {
             const button = document.querySelector('[data-action="upload-request"]');
 
             // Store case ID at the time of upload
-            const uploadCaseId = currentCaseId;
+            const uploadCaseId = appState.currentCaseId;
 
             const updateProgress = (message, progress) => {
                 if (progressSection) {
@@ -2399,7 +2443,7 @@ const initialData = {
                                     renderCasesDashboard();
                                     break;
                                 case 'request-letters-active':
-                                    if (currentCaseId === uploadCaseId) {
+                                    if (appState.currentCaseId === uploadCaseId) {
                                         renderRequestLettersView();
                                     }
                                     break;
@@ -2477,13 +2521,13 @@ const initialData = {
         // Add change event listener for objection textarea
         document.body.addEventListener('change', (event) => {
             if (event.target.id === 'focus-objection-textarea') {
-                const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+                const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
                 if (!caseData) return;
 
-                const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+                const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
                 if (!letterData) return;
 
-                const currentRequest = letterData.requests[currentFocusIndex];
+                const currentRequest = letterData.requests[appState.currentFocusIndex];
                 if (currentRequest) {
                     currentRequest.objection = event.target.value;
                 }
@@ -2493,13 +2537,13 @@ const initialData = {
         // Add input event listener for reply editor
         document.body.addEventListener('input', (event) => {
             if (event.target.id === 'focus-reply-editor') {
-                const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+                const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
                 if (!caseData) return;
 
-                const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+                const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
                 if (!letterData) return;
 
-                const currentRequest = letterData.requests[currentFocusIndex];
+                const currentRequest = letterData.requests[appState.currentFocusIndex];
                 if (currentRequest) {
                     currentRequest.reply = event.target.innerHTML;
                 }
@@ -2508,7 +2552,7 @@ const initialData = {
 
         // --- DATA PERSISTENCE ---
         async function saveCurrentCase() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (caseData) {
                 try {
                     await window.electronAPI.saveCase(caseData);
@@ -2521,7 +2565,7 @@ const initialData = {
 
         // Auto-save when important changes occur
         async function autoSave() {
-            if (currentCaseId) {
+            if (appState.currentCaseId) {
                 await saveCurrentCase();
             }
         }
@@ -2559,13 +2603,13 @@ const initialData = {
                 
                 // Set new timeout
                 autosaveTimeout = setTimeout(async () => {
-                    const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+                    const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
                     if (!caseData) return;
 
-                    const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+                    const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
                     if (!letterData) return;
 
-                    const currentRequest = letterData.requests[currentFocusIndex];
+                    const currentRequest = letterData.requests[appState.currentFocusIndex];
                     if (currentRequest) {
                         currentRequest.reply = event.target.innerHTML;
                         await autoSave();
@@ -2614,7 +2658,7 @@ const initialData = {
         }
 
         function showEditCaseModal(caseId) {
-            currentEditingCaseId = caseId;
+            appState.currentEditingCaseId = caseId;
             const caseData = appData.cases.find(c => c.caseId === caseId);
             if (caseData) {
                 document.getElementById('edit-case-name-input').value = caseData.caseName;
@@ -2626,7 +2670,7 @@ const initialData = {
         function hideEditCaseModal() {
             document.getElementById('edit-case-modal').classList.remove('visible');
             document.getElementById('edit-case-name-input').value = '';
-            currentEditingCaseId = null;
+            appState.currentEditingCaseId = null;
         }
 
         async function createNewCase() {
@@ -2647,12 +2691,12 @@ const initialData = {
         }
 
         async function saveEditedCase() {
-            if (!currentEditingCaseId) return;
+            if (!appState.currentEditingCaseId) return;
 
             const newName = document.getElementById('edit-case-name-input').value.trim();
             if (!newName) return;
 
-            const caseData = appData.cases.find(c => c.caseId === currentEditingCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentEditingCaseId);
             if (caseData) {
                 caseData.caseName = newName;
                 await autoSave();
@@ -2662,8 +2706,8 @@ const initialData = {
         }
 
         function showEditLetterModal(letterId) {
-            currentEditingLetterId = letterId;
-            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
+            appState.currentEditingLetterId = letterId;
+            const letterData = appData.cases.find(c => c.caseId === appState.currentCaseId)
                                     ?.requestLetters.find(l => l.id === letterId);
             if (letterData) {
                 document.getElementById('edit-letter-name-input').value = letterData.description;
@@ -2675,18 +2719,18 @@ const initialData = {
         function hideEditLetterModal() {
             document.getElementById('edit-letter-modal').classList.remove('visible');
             document.getElementById('edit-letter-name-input').value = '';
-            currentEditingLetterId = null;
+            appState.currentEditingLetterId = null;
         }
 
         async function saveEditedLetter() {
-            if (!currentEditingLetterId) return;
+            if (!appState.currentEditingLetterId) return;
 
             const newDescription = document.getElementById('edit-letter-name-input').value.trim();
             if (!newDescription) return;
 
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (caseData) {
-                const letterData = caseData.requestLetters.find(l => l.id === currentEditingLetterId);
+                const letterData = caseData.requestLetters.find(l => l.id === appState.currentEditingLetterId);
                 if (letterData) {
                     letterData.description = newDescription;
                     await autoSave();
@@ -2706,10 +2750,10 @@ const initialData = {
         }
 
         async function generateResponseLetter() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return;
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
             if (!letterData) return;
 
             const generateButton = document.querySelector('[data-action="generate-letter"]');
@@ -2805,10 +2849,10 @@ const initialData = {
                 const editor = document.getElementById('letter-editor');
                 const content = editor.innerHTML;
                 
-                const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+                const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
                 if (!caseData) return;
 
-                const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+                const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
                 if (!letterData) return;
 
                 // Save the letter content to the letter data
@@ -2861,10 +2905,10 @@ const initialData = {
         }
 
         function updateEditorHeader() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return;
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
             if (!letterData) return;
 
             document.getElementById('letter-editor-header').textContent = caseData.caseName;
@@ -2872,10 +2916,10 @@ const initialData = {
         }
 
         function updateLetterStats() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return;
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
             if (!letterData) return;
 
             const totalRequests = letterData.requests.length;
@@ -2947,7 +2991,7 @@ const initialData = {
             if (action === 'build-letter') {
                 showLetterEditor();
             } else if (action === 'back-to-disputes') {
-                showDisputeListView(currentLetterId);
+                showDisputeListView(appState.currentLetterId);
             } else if (action === 'generate-letter') {
                 generateResponseLetter();
             }
@@ -3034,10 +3078,10 @@ const initialData = {
 
         // Autosave function for letter drafts
         async function autosaveLetter() {
-            const caseData = appData.cases.find(c => c.caseId === currentCaseId);
+            const caseData = appData.cases.find(c => c.caseId === appState.currentCaseId);
             if (!caseData) return;
 
-            const letterData = caseData.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = caseData.requestLetters.find(l => l.id === appState.currentLetterId);
             if (!letterData) return;
 
             // Create a version ID based on timestamp
@@ -3076,26 +3120,6 @@ const initialData = {
             });
         }
 
-        // Add version history modal HTML after your other modals
-        const versionHistoryModal = `
-            <div class="modal-overlay" id="version-history-modal">
-                <div class="modal">
-                    <div class="modal-header">
-                        <h3>Version History</h3>
-                        <button class="modal-close" onclick="hideVersionHistoryModal()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="version-list" id="version-list">
-                            <!-- Versions will be populated here -->
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="hideVersionHistoryModal()">Close</button>
-                    </div>
-                </div>
-            </div>
-        `;
-
         // Add version history button to the preview toolbar
         document.querySelector('.preview-toolbar').innerHTML += `
             <button class="btn btn-secondary" onclick="showVersionHistoryModal()">
@@ -3111,8 +3135,8 @@ const initialData = {
         function showVersionHistoryModal() {
             const modal = document.getElementById('version-history-modal');
             const versionList = document.getElementById('version-list');
-            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
-                ?.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = appData.cases.find(c => c.caseId === appState.currentCaseId)
+                ?.requestLetters.find(l => l.id === appState.currentLetterId);
             
             if (!letterData || !letterVersions[letterData.id]) {
                 versionList.innerHTML = '<p>No previous versions available.</p>';
@@ -3140,39 +3164,28 @@ const initialData = {
         }
 
         function previewVersion(versionId) {
-            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
-                ?.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = appData.cases.find(c => c.caseId === appState.currentCaseId)
+                ?.requestLetters.find(l => l.id === appState.currentLetterId);
             
             if (!letterData || !letterVersions[letterData.id]) return;
             
             const version = letterVersions[letterData.id].find(v => v.id === parseInt(versionId));
             if (!version) return;
             
-            // Show preview in a new modal
-            const previewModal = document.createElement('div');
-            previewModal.className = 'modal-overlay';
-            previewModal.innerHTML = `
-                <div class="modal letter-modal">
-                    <div class="modal-header">
-                        <h3>Version from ${new Date(version.timestamp).toLocaleString()}</h3>
-                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="letter-preview-container">
-                            <div class="letter-preview-content">
-                                ${version.content}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(previewModal);
+            // Show preview in the preview modal
+            const previewModal = document.getElementById('preview-modal');
+            document.getElementById('preview-modal-title').textContent = `Version from ${new Date(version.timestamp).toLocaleString()}`;
+            document.getElementById('preview-content').innerHTML = version.content;
             previewModal.classList.add('visible');
         }
 
+        function hidePreviewModal() {
+            document.getElementById('preview-modal').classList.remove('visible');
+        }
+
         function restoreVersion(versionId) {
-            const letterData = appData.cases.find(c => c.caseId === currentCaseId)
-                ?.requestLetters.find(l => l.id === currentLetterId);
+            const letterData = appData.cases.find(c => c.caseId === appState.currentCaseId)
+                ?.requestLetters.find(l => l.id === appState.currentLetterId);
             
             if (!letterData || !letterVersions[letterData.id]) return;
             
@@ -3299,6 +3312,7 @@ const initialData = {
                     document.getElementById('profile-org-address').value = profile.address || '';
                     document.getElementById('profile-bar-number').value = profile.barNumber || '';
                     document.getElementById('profile-signature').value = profile.signature || '';
+                    document.getElementById('profile-api-key').value = profile.apiKey || '';
                 }
 
                 // Clear loading state
@@ -3334,7 +3348,8 @@ const initialData = {
                     organization: document.getElementById('profile-org').value,
                     address: document.getElementById('profile-org-address').value,
                     barNumber: document.getElementById('profile-bar-number').value,
-                    signature: document.getElementById('profile-signature').value
+                    signature: document.getElementById('profile-signature').value,
+                    apiKey: document.getElementById('profile-api-key').value
                 };
 
                 const result = await window.electronAPI.saveUserProfile(profileData);
@@ -3372,7 +3387,11 @@ const initialData = {
         // Store previous view before showing profile
         const originalShowUserInfo = showUserInfo;
         showUserInfo = function() {
-            localStorage.setItem('previous-view', document.body.className);
+            const currentView = document.body.className;
+            // Only store the previous view if it's not the profile view itself
+            if (currentView && currentView !== 'profile-view-active') {
+                localStorage.setItem('previous-view', currentView);
+            }
             originalShowUserInfo();
         };
     </script>
@@ -3472,17 +3491,18 @@ const initialData = {
     </div>
 
     <div class="modal-overlay" id="preview-modal">
-        <div class="modal">
+        <div class="modal letter-modal">
             <div class="modal-header">
-                <h3>Preview Version</h3>
+                <h3 id="preview-modal-title">Preview Version</h3>
                 <button class="modal-close" onclick="hidePreviewModal()">×</button>
             </div>
             <div class="modal-body">
-                <div id="preview-content"></div>
+                <div class="letter-preview-container">
+                    <div id="preview-content" class="letter-preview-content"></div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hidePreviewModal()">Close</button>
-                <button class="btn btn-primary" onclick="restoreVersion()">Restore This Version</button>
             </div>
         </div>
     </div>
@@ -3521,6 +3541,11 @@ const initialData = {
                     <div class="form-group">
                         <label for="profile-phone">Phone Number</label>
                         <input type="tel" id="profile-phone" class="form-input" placeholder="Enter your phone number">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-api-key">Gemini API Key</label>
+                        <input type="password" id="profile-api-key" class="form-input" placeholder="Enter your Gemini API Key">
+                        <p class="help-text">Your key is stored locally and is never shared.</p>
                     </div>
                 </div>
 

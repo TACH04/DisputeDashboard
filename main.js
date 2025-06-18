@@ -20,7 +20,7 @@ require('dotenv').config();
 // Data storage configuration
 const DATA_DIR = path.join(app.getPath('userData'), 'case_data');
 const BACKUP_DIR = path.join(app.getPath('userData'), 'backups');
-const CURRENT_DATA_VERSION = '1.0';
+const CURRENT_DATA_VERSION = '1.1';
 
 // User profile storage
 const USER_PROFILE_FILE = path.join(app.getPath('userData'), 'user_profile.json');
@@ -64,8 +64,9 @@ async function saveCaseData(caseData) {
             fs.mkdirSync(caseDir, { recursive: true });
         }
 
-        // Save main case data
+        // Save main case data with version stamp
         const caseFile = path.join(caseDir, 'case.json');
+        caseData.version = CURRENT_DATA_VERSION;
         await fs.promises.writeFile(caseFile, JSON.stringify(caseData, null, 2));
 
         // Save version history if it exists
@@ -101,7 +102,19 @@ async function loadCaseData(caseId) {
         }
 
         // Load main case data
-        const caseData = JSON.parse(await fs.promises.readFile(caseFile, 'utf8'));
+        let caseData = JSON.parse(await fs.promises.readFile(caseFile, 'utf8'));
+
+        // --- MIGRATION LOGIC ---
+        if (!caseData.version || caseData.version < CURRENT_DATA_VERSION) {
+            // Example migration from no version or v1.0 to v1.1
+            // This is where you would add new default properties to your data structure
+            if (!caseData.hasOwnProperty('court')) {
+                caseData.court = 'Not specified';
+            }
+            caseData.version = CURRENT_DATA_VERSION;
+            console.log(`Migrated case ${caseId} to version ${CURRENT_DATA_VERSION}`);
+        }
+        // --- END MIGRATION LOGIC ---
 
         // Load version history if it exists
         const versionsDir = path.join(caseDir, 'versions');
@@ -288,8 +301,9 @@ async function handleAskGemini(event, { requestText, objectionText, contextText}
   console.log("Main process: Starting Deconstructor/Drafter pipeline...");
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("API key not found.");
+    const userProfile = await handleLoadUserProfile();
+    const apiKey = userProfile?.apiKey;
+    if (!apiKey) throw new Error("Gemini API Key not found. Please set it in your User Profile.");
     
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -378,8 +392,10 @@ async function handleRequestLetterUpload(event) {
       progress: 25
     });
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("API key not found.");
+    const userProfile = await handleLoadUserProfile();
+    const apiKey = userProfile?.apiKey;
+    if (!apiKey) throw new Error("Gemini API Key not found. Please set it in your User Profile.");
+    
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
@@ -558,9 +574,12 @@ app.on('window-all-closed', () => {
 });
 
 async function handleGenerateResponseLetter(event, { caseName, letterDescription, requests }) {
+  console.log("Starting response letter generation...");
+
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("API key not found.");
+    const userProfile = await handleLoadUserProfile();
+    const apiKey = userProfile?.apiKey;
+    if (!apiKey) throw new Error("Gemini API Key not found. Please set it in your User Profile.");
     
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -668,12 +687,8 @@ async function handleGenerateLetterSection(event, data) {
 
   try {
     const userProfile = await handleLoadUserProfile();
-    if (!userProfile) {
-      throw new Error('User profile not found. Please set up your profile first.');
-    }
-
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error("API key not found.");
+    const apiKey = userProfile?.apiKey;
+    if (!apiKey) throw new Error("Gemini API Key not found. Please set it in your User Profile.");
     
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -728,18 +743,23 @@ async function handleSaveUserProfile(event, profileData) {
 }
 
 async function handleLoadUserProfile() {
-  try {
-    if (fs.existsSync(USER_PROFILE_FILE)) {
-      const data = await fs.promises.readFile(USER_PROFILE_FILE, 'utf8');
-      return JSON.parse(data);
+    try {
+        if (fs.existsSync(USER_PROFILE_FILE)) {
+            const data = await fs.promises.readFile(USER_PROFILE_FILE, 'utf8');
+            // IMPORTANT: Do not log the profile data here to avoid exposing the key in logs.
+            return JSON.parse(data);
+        }
+        return {}; // Return empty object instead of null
+    } catch (error) {
+        console.error('Error loading user profile:', error);
+        return {}; // Return empty object on error
     }
-    return null;
-  } catch (error) {
-    console.error('Error loading user profile:', error);
-    return null;
-  }
 }
 
 // Add to your IPC handlers
 ipcMain.handle('save-user-profile', handleSaveUserProfile);
 ipcMain.handle('load-user-profile', handleLoadUserProfile);
+// Add handler for getting user data path
+ipcMain.handle('get-user-data-path', () => {
+    return app.getPath('userData');
+});
