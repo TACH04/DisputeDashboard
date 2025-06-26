@@ -145,10 +145,14 @@ async function loadCaseData(caseId) {
 async function loadAllCases() {
     try {
         const files = await fs.promises.readdir(DATA_DIR);
-        const caseFiles = files.filter(f => f.endsWith('.json'));
+        // Look for directories (case folders) instead of .json files
+        const caseDirs = files.filter(f => {
+            const fullPath = path.join(DATA_DIR, f);
+            return fs.statSync(fullPath).isDirectory();
+        });
+        
         const cases = await Promise.all(
-            caseFiles.map(async file => {
-                const caseId = path.basename(file, '.json');
+            caseDirs.map(async caseId => {
                 return await loadCaseData(caseId);
             })
         );
@@ -550,15 +554,6 @@ app.whenReady().then(async () => {
       console.error('Autosave failed:', error);
     }
   }, 5 * 60 * 1000);
-
-  // Save data when window is closed
-  mainWindow.on('close', async (e) => {
-    e.preventDefault(); // Prevent the window from closing immediately
-    const webContents = mainWindow.webContents;
-    const cases = await webContents.executeJavaScript('appData.cases');
-    await handleBeforeQuit(cases);
-    mainWindow.destroy(); // Now close the window
-  });
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

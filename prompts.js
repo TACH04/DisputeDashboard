@@ -40,7 +40,7 @@ exports.drafterPrompt = (objectionKey, rule, requestText, objectionText, context
   --- RULE TO APPLY ---
   - Objection Type: "${objectionKey}"
   - Core Argument: "${rule.argument}"
-  - Relevant Cases: [${rule.cases.join(", ")}]
+  - Relevant Cases: [${Array.isArray(rule.cases) ? rule.cases.join(", ") : ""}]
   --- END OF RULE ---
 
   --- DISPUTE CONTEXT ---
@@ -105,7 +105,7 @@ exports.headerPrompt = (data, userProfile) => `
       <p>${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       <br>
       <p class="via-email">VIA EMAIL ONLY:</p>
-      <p>${data.recipientEmails.join('<br>')}</p>
+      <p>${Array.isArray(data.recipientEmails) ? data.recipientEmails.join('<br>') : ''}</p>
   </div>
   <div class="re-block">
       <p><b>RE:</b>     <b>Discovery Dispute</b></p>
