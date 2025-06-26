@@ -32,6 +32,10 @@ export class ViewManager {
     }
 
     showUserProfile() {
+        // Push the current view to the history stack before switching
+        if (window.app && window.app.state) {
+            window.app.state.pushView(document.body.className);
+        }
         this.switchView('profile-view-active');
         this.loadUserProfile();
     }
@@ -291,5 +295,32 @@ export class ViewManager {
     hideAddCaseModal() {
         const modal = document.getElementById('add-case-modal');
         if (modal) modal.classList.remove('visible');
+    }
+
+    saveUserProfile() {
+        // Collect form data
+        const profile = {
+            name: document.getElementById('profile-name')?.value || '',
+            title: document.getElementById('profile-title')?.value || '',
+            email: document.getElementById('profile-email')?.value || '',
+            phone: document.getElementById('profile-phone')?.value || '',
+            org: document.getElementById('profile-org')?.value || '',
+            orgAddress: document.getElementById('profile-org-address')?.value || '',
+            barNumber: document.getElementById('profile-bar-number')?.value || '',
+            signature: document.getElementById('profile-signature')?.value || '',
+            apiKey: document.getElementById('profile-api-key')?.value || ''
+        };
+        const statusText = document.getElementById('profile-status-text');
+        if (statusText) statusText.textContent = 'Saving...';
+        window.electronAPI.saveUserProfile(profile).then(result => {
+            if (result && result.success) {
+                if (statusText) statusText.textContent = 'Profile saved!';
+                setTimeout(() => { if (statusText) statusText.textContent = ''; }, 2000);
+            } else {
+                if (statusText) statusText.textContent = 'Error saving profile.';
+            }
+        }).catch(() => {
+            if (statusText) statusText.textContent = 'Error saving profile.';
+        });
     }
 } 

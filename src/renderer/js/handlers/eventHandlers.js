@@ -111,6 +111,7 @@ export class EventHandlers {
         console.log('Action clicked:', action); // Debug log
         switch(action) {
             case 'go-back': this.goBack(); break;
+            case 'back-to-previous': this.goBack(); break;
             case 'back-to-cases': this.app.viewManager.showCasesDashboard(); break;
             case 'back-to-letters': this.app.viewManager.showRequestLettersView(this.app.state.currentCaseId); break;
             case 'back-to-list': this.app.viewManager.showDisputeListView(this.app.state.currentLetterId); break;
@@ -138,8 +139,9 @@ export class EventHandlers {
     goBack() {
         if (this.app.state.canGoBack()) {
             const previousView = this.app.state.popView();
+            console.log('Going back to:', previousView);
             document.body.className = previousView;
-            
+
             // Re-render the view based on the view type
             switch (previousView) {
                 case 'cases-view-active':
@@ -154,7 +156,17 @@ export class EventHandlers {
                 case 'focus-mode-active':
                     this.app.viewManager.renderFocusView(this.app.state.currentFocusIndex);
                     break;
+                case 'profile-view-active':
+                    this.app.viewManager.loadUserProfile();
+                    break;
+                default:
+                    // Fallback: show dashboard
+                    this.app.viewManager.showCasesDashboard();
+                    break;
             }
+        } else {
+            // Fallback: show dashboard
+            this.app.viewManager.showCasesDashboard();
         }
     }
 

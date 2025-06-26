@@ -35,6 +35,7 @@ class App {
         // Show initial view
         console.log('Showing initial view...'); // Debug log
         this.viewManager.showCasesDashboard();
+        this.state.pushView('cases-view-active');
         
         console.log('App initialized successfully');
     }
@@ -57,6 +58,15 @@ class App {
 // Initialize app when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.app = new App();
+
+    // Add delegated event listener for Save Changes button in user profile
+    document.body.addEventListener('click', (event) => {
+        if (event.target && event.target.id === 'save-profile-btn') {
+            if (window.app && window.app.viewManager && typeof window.app.viewManager.saveUserProfile === 'function') {
+                window.app.viewManager.saveUserProfile();
+            }
+        }
+    });
 });
 
 export { App }; 
