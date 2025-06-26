@@ -31,5 +31,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // System information
   getWorkspacePath: () => ipcRenderer.invoke('get-user-data-path'),
-  getOSInfo: () => process.platform + ' ' + process.version
+  getOSInfo: () => process.platform + ' ' + process.version,
+
+  // Cleanup functions
+  cleanupOldCases: () => ipcRenderer.invoke('cleanup-old-cases')
 });

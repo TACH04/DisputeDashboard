@@ -442,6 +442,11 @@
                         <label>Operating System</label>
                         <div class="info-value" id="os-info"></div>
                     </div>
+                    <div class="info-group">
+                        <label>Data Management</label>
+                        <button class="btn btn-secondary" onclick="cleanupOldCases()">Clean Up Old Format Cases</button>
+                        <p class="help-text">Remove any cases that don't use the current data format (version 1.1).</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -515,6 +520,18 @@
         function zoomIn() { /* TODO: Implement */ }
         function zoomOut() { /* TODO: Implement */ }
         function exportLetter() { /* TODO: Implement */ }
+        
+        async function cleanupOldCases() {
+            try {
+                const deletedCount = await window.electronAPI.cleanupOldCases();
+                alert(`Cleanup complete: ${deletedCount} old format cases were deleted.`);
+                // Reload the app to refresh the case list
+                location.reload();
+            } catch (error) {
+                console.error('Error during cleanup:', error);
+                alert('Error during cleanup: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>

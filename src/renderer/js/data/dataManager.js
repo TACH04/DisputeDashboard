@@ -12,9 +12,19 @@ export class DataManager {
             console.log('DataManager: Calling electronAPI.loadAllCases()'); // Debug log
             const cases = await window.electronAPI.loadAllCases();
             console.log('DataManager: Received cases from main process:', cases); // Debug log
-            if (cases && cases.length > 0) {
-                this.cases = cases;
-                console.log('DataManager: Using cases from main process'); // Debug log
+            
+            // Filter to only include version 1.1 cases
+            const validCases = cases ? cases.filter(caseData => {
+                if (!caseData || caseData.version !== "1.1") {
+                    console.log(`DataManager: Skipping invalid case: ${caseData?.caseId || 'unknown'} (version: ${caseData?.version || 'none'})`);
+                    return false;
+                }
+                return true;
+            }) : [];
+            
+            if (validCases.length > 0) {
+                this.cases = validCases;
+                console.log('DataManager: Using valid cases from main process'); // Debug log
             } else {
                 this.cases = JSON.parse(JSON.stringify(defaultCases));
                 console.log('DataManager: Using default data cases'); // Debug log
@@ -63,7 +73,21 @@ export class DataManager {
     }
 
     addCase(caseData) {
+        // Ensure new cases have the correct version
+        if (!caseData.version) {
+            caseData.version = "1.1";
+        }
         this.cases.push(caseData);
+    }
+
+    validateCaseData(caseData) {
+        if (!caseData.caseId || !caseData.caseName) {
+            throw new Error('Invalid case data: missing required fields');
+        }
+        if (caseData.version !== "1.1") {
+            throw new Error('Invalid case data: must be version 1.1');
+        }
+        return true;
     }
 
     updateCase(caseId, updates) {

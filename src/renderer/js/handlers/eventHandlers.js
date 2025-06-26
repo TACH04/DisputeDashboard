@@ -683,11 +683,19 @@ export class EventHandlers {
         const newCase = {
             caseId,
             caseName,
+            version: "1.1",
             requestLetters: []
         };
-        this.app.dataManager.addCase(newCase);
-        this.app.dataManager.saveCase(newCase);
-        this.app.viewManager.hideAddCaseModal();
-        this.app.viewManager.renderCasesDashboard();
+        
+        try {
+            this.app.dataManager.validateCaseData(newCase);
+            this.app.dataManager.addCase(newCase);
+            this.app.dataManager.saveCase(newCase);
+            this.app.viewManager.hideAddCaseModal();
+            this.app.viewManager.renderCasesDashboard();
+        } catch (error) {
+            console.error('Error creating new case:', error);
+            alert('Error creating case: ' + error.message);
+        }
     }
 } 

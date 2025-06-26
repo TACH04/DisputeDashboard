@@ -87,6 +87,11 @@ class IPCHandlers {
         ipcMain.handle('get-user-data-path', () => {
             return this.userProfileService.getUserDataPath();
         });
+
+        // Cleanup old format cases
+        ipcMain.handle('cleanup-old-cases', async () => {
+            return await this.dataService.cleanupOldFormatCases();
+        });
     }
 
     async handleUploadAndProcess(event, requestsFromUI) {

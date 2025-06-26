@@ -3,6 +3,7 @@ const defaultCases = [
     {
         caseId: 'gardner-navajo',
         caseName: "Gardner v. Navajo County, et al.",
+        version: "1.1",
         requestLetters: [
             {
                 id: 'rog-set1',
@@ -28,6 +29,7 @@ const defaultCases = [
     {
         caseId: 'acme-vs-wile',
         caseName: "Acme Corp. v. Wile E. Coyote",
+        version: "1.1",
         requestLetters: [
             {
                 id: 'rog-set1',

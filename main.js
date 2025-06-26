@@ -103,6 +103,16 @@ app.whenReady().then(async () => {
     // Set up IPC handlers
     ipcHandlers.setupHandlers(ipcMain);
 
+    // Clean up old format cases on startup
+    try {
+        const deletedCount = await dataService.cleanupOldFormatCases();
+        if (deletedCount > 0) {
+            console.log(`Cleaned up ${deletedCount} old format cases during startup`);
+        }
+    } catch (error) {
+        console.error('Error during startup cleanup:', error);
+    }
+
     // Set up periodic autosave (every 5 minutes)
     setInterval(async () => {
         try {
