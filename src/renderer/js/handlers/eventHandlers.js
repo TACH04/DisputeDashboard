@@ -19,6 +19,13 @@ export class EventHandlers {
             const disputeRow = target.closest('#table-body tr');
             const action = target.dataset.action;
 
+            // Check for edit button click first
+            if (target.closest('.edit-button') || target.closest('[data-action="edit-case-details"]')) {
+                event.stopPropagation();
+                this.handleEditCaseDetails(event);
+                return;
+            }
+
             // Add New Case button (remove inline handler in HTML later)
             if (target.matches('.btn.btn-primary') && target.textContent.includes('Add New Case')) {
                 this.app.viewManager.showAddCaseModal();
@@ -64,6 +71,33 @@ export class EventHandlers {
                 }
             }
         });
+
+        // Add zoom keyboard shortcuts
+        document.addEventListener('keydown', (event) => {
+            if (event.ctrlKey && (event.key === '+' || event.key === '=')) {
+                event.preventDefault();
+                this.handleZoomIn();
+            } else if (event.ctrlKey && event.key === '-') {
+                event.preventDefault();
+                this.handleZoomOut();
+            } else if (event.ctrlKey && event.key === '0') {
+                event.preventDefault();
+                this.handleZoomReset();
+            }
+        });
+
+        // Add mouse wheel zoom support
+        document.addEventListener('wheel', (event) => {
+            if (event.ctrlKey && document.body.classList.contains('letter-editor-active')) {
+                event.preventDefault();
+                const delta = event.deltaY > 0 ? -1 : 1;
+                if (delta > 0) {
+                    this.handleZoomIn();
+                } else {
+                    this.handleZoomOut();
+                }
+            }
+        }, { passive: false });
     }
 
     setupUploadHandlers() {
@@ -133,6 +167,10 @@ export class EventHandlers {
             case 'view-saved-letters': this.handleViewSavedLetters(); break;
             case 'save-current-letter': this.saveCurrentLetter(); break;
             case 'save-profile': this.app.viewManager.saveUserProfile(); break;
+            case 'export-pdf': this.exportLetter('pdf'); break;
+            case 'export-docx': this.exportLetter('docx'); break;
+            case 'zoom-reset': this.handleZoomReset(); break;
+            case 'edit-case-details': this.handleEditCaseDetails(event); break;
             default:
                 console.log('Unknown action:', action); // Debug log
         }
@@ -827,6 +865,48 @@ export class EventHandlers {
         }
     }
 
+    async exportLetter(format) {
+        const caseData = this.app.getCurrentCase();
+        const letterData = this.app.getCurrentLetter();
+        const previewContent = document.getElementById('letter-preview-content');
+        
+        if (!caseData || !letterData || !previewContent) {
+            alert('No case, letter, or content to export.');
+            return;
+        }
+
+        const content = previewContent.innerHTML.trim();
+        if (!content) {
+            alert('No content to export. Please generate or load a letter first.');
+            return;
+        }
+
+        // Generate a default filename
+        const timestamp = new Date().toISOString().split('T')[0];
+        const defaultFileName = `${caseData.caseName.replace(/[^a-zA-Z0-9]/g, '_')}_Response_Letter_${timestamp}`;
+
+        try {
+            let result;
+            if (format === 'pdf') {
+                result = await window.electronAPI.exportLetterToPDF(content, defaultFileName);
+            } else if (format === 'docx') {
+                result = await window.electronAPI.exportLetterToDOCX(content, defaultFileName);
+            } else {
+                alert('Unsupported export format.');
+                return;
+            }
+
+            if (result.success) {
+                alert(`${format.toUpperCase()} export completed successfully!`);
+            } else {
+                alert(`Export failed: ${result.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            console.error('Error exporting letter:', error);
+            alert('Error exporting letter: ' + error.message);
+        }
+    }
+
     // Status update helpers
     updateRequestStatus(request, tableRow) {
         const hasObjection = request.objection && request.objection.trim() !== '';
@@ -882,30 +962,360 @@ export class EventHandlers {
     }
 
     handleCreateNewCase() {
-        const input = document.getElementById('case-name-input');
-        const caseName = input?.value.trim();
+        const caseName = document.getElementById('case-name-input')?.value?.trim();
         if (!caseName) {
-            input.focus();
+            alert('Please enter a case name');
             return;
         }
-        // Generate a unique caseId
-        const caseId = caseName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') + '-' + Date.now();
+
+        // Collect all case details
+        const caseData = {
+            caseNumber: document.getElementById('case-number-input')?.value?.trim() || '',
+            court: document.getElementById('court-input')?.value?.trim() || '',
+            judge: document.getElementById('judge-input')?.value?.trim() || '',
+            filingDate: document.getElementById('filing-date-input')?.value || '',
+            plaintiff: document.getElementById('plaintiff-input')?.value?.trim() || '',
+            defendants: document.getElementById('defendants-input')?.value?.split(',').map(d => d.trim()).filter(d => d) || [],
+            caseType: document.getElementById('case-type-input')?.value?.trim() || '',
+            jurisdiction: document.getElementById('jurisdiction-input')?.value || '',
+            venue: document.getElementById('venue-input')?.value?.trim() || '',
+            status: document.getElementById('status-input')?.value || 'Active',
+            discoveryDeadline: document.getElementById('discovery-deadline-input')?.value || '',
+            trialDate: document.getElementById('trial-date-input')?.value || ''
+        };
+
         const newCase = {
-            caseId,
-            caseName,
+            caseId: this.generateCaseId(caseName),
+            caseName: caseName,
             version: "1.1",
+            caseData: caseData,
             requestLetters: []
         };
-        
+
         try {
             this.app.dataManager.validateCaseData(newCase);
             this.app.dataManager.addCase(newCase);
             this.app.dataManager.saveCase(newCase);
+            
+            // Clear form
+            this.clearNewCaseForm();
+            
+            // Hide modal
             this.app.viewManager.hideAddCaseModal();
+            
+            // Re-render dashboard
             this.app.viewManager.renderCasesDashboard();
+            
+            alert('Case created successfully!');
         } catch (error) {
-            console.error('Error creating new case:', error);
+            console.error('Error creating case:', error);
             alert('Error creating case: ' + error.message);
+        }
+    }
+
+    clearNewCaseForm() {
+        const fields = [
+            'case-name-input',
+            'case-number-input',
+            'court-input',
+            'judge-input',
+            'filing-date-input',
+            'plaintiff-input',
+            'defendants-input',
+            'case-type-input',
+            'jurisdiction-input',
+            'venue-input',
+            'status-input',
+            'discovery-deadline-input',
+            'trial-date-input'
+        ];
+
+        fields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.value = '';
+            }
+        });
+    }
+
+    handleZoomIn() {
+        const previewContent = document.getElementById('letter-preview-content');
+        const zoomLevel = document.getElementById('zoom-level');
+        
+        if (!previewContent || !zoomLevel) {
+            console.warn('Zoom elements not found:', { previewContent: !!previewContent, zoomLevel: !!zoomLevel });
+            return;
+        }
+        
+        // Get current zoom level more reliably
+        const currentZoom = this.getCurrentZoomLevel(previewContent);
+        const newZoom = Math.min(currentZoom + 0.1, 3.0); // Max zoom 300%
+        
+        console.log('Zoom in:', { currentZoom, newZoom });
+        
+        previewContent.style.transform = `scale(${newZoom})`;
+        zoomLevel.textContent = `${Math.round(newZoom * 100)}%`;
+    }
+
+    handleZoomOut() {
+        const previewContent = document.getElementById('letter-preview-content');
+        const zoomLevel = document.getElementById('zoom-level');
+        
+        if (!previewContent || !zoomLevel) {
+            console.warn('Zoom elements not found:', { previewContent: !!previewContent, zoomLevel: !!zoomLevel });
+            return;
+        }
+        
+        // Get current zoom level more reliably
+        const currentZoom = this.getCurrentZoomLevel(previewContent);
+        const newZoom = Math.max(currentZoom - 0.1, 0.3); // Min zoom 30%
+        
+        console.log('Zoom out:', { currentZoom, newZoom });
+        
+        previewContent.style.transform = `scale(${newZoom})`;
+        zoomLevel.textContent = `${Math.round(newZoom * 100)}%`;
+    }
+
+    handleZoomReset() {
+        const previewContent = document.getElementById('letter-preview-content');
+        const zoomLevel = document.getElementById('zoom-level');
+        
+        if (!previewContent || !zoomLevel) {
+            console.warn('Zoom elements not found:', { previewContent: !!previewContent, zoomLevel: !!zoomLevel });
+            return;
+        }
+        
+        console.log('Zoom reset');
+        
+        previewContent.style.transform = 'scale(1)';
+        zoomLevel.textContent = '100%';
+    }
+
+    getCurrentZoomLevel(element) {
+        const transform = element.style.transform;
+        if (!transform || transform === 'none') {
+            return 1.0;
+        }
+        
+        // Parse scale value from transform string
+        const scaleMatch = transform.match(/scale\(([^)]+)\)/);
+        if (scaleMatch) {
+            const scaleValue = parseFloat(scaleMatch[1]);
+            return isNaN(scaleValue) ? 1.0 : scaleValue;
+        }
+        
+        return 1.0;
+    }
+
+    // Test function for debugging zoom functionality
+    testZoom() {
+        console.log('Testing zoom functionality...');
+        
+        const previewContent = document.getElementById('letter-preview-content');
+        const zoomLevel = document.getElementById('zoom-level');
+        
+        console.log('Elements found:', { 
+            previewContent: !!previewContent, 
+            zoomLevel: !!zoomLevel 
+        });
+        
+        if (previewContent) {
+            console.log('Current transform:', previewContent.style.transform);
+            console.log('Current zoom level:', this.getCurrentZoomLevel(previewContent));
+        }
+        
+        if (zoomLevel) {
+            console.log('Zoom level text:', zoomLevel.textContent);
+        }
+        
+        // Test zoom in
+        console.log('Testing zoom in...');
+        this.handleZoomIn();
+        
+        // Test zoom out
+        console.log('Testing zoom out...');
+        this.handleZoomOut();
+        
+        // Test reset
+        console.log('Testing zoom reset...');
+        this.handleZoomReset();
+    }
+
+    handleEditCaseDetails(event) {
+        const caseCard = event.target.closest('.case-card');
+        const caseId = caseCard?.dataset.caseId;
+        
+        if (!caseId) return;
+        
+        const caseData = this.app.dataManager.getCase(caseId);
+        if (!caseData) return;
+        
+        this.showCaseDetailsModal(caseData);
+    }
+
+    showCaseDetailsModal(caseData) {
+        const modal = document.getElementById('case-details-modal');
+        if (!modal) return;
+        
+        // Fill the form with existing data
+        this.fillCaseDetailsForm(caseData);
+        
+        // Store the case ID for saving
+        modal.dataset.caseId = caseData.caseId;
+        
+        modal.classList.add('visible');
+    }
+
+    fillCaseDetailsForm(caseData) {
+        const fields = [
+            'edit-case-name-input',
+            'edit-case-number-input',
+            'edit-court-input',
+            'edit-judge-input',
+            'edit-filing-date-input',
+            'edit-plaintiff-input',
+            'edit-defendants-input',
+            'edit-case-type-input',
+            'edit-jurisdiction-input',
+            'edit-venue-input',
+            'edit-status-input',
+            'edit-discovery-deadline-input',
+            'edit-trial-date-input'
+        ];
+
+        fields.forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (!element) return;
+            
+            const fieldName = fieldId.replace('edit-', '').replace('-input', '');
+            let value = '';
+            
+            if (fieldName === 'case-name') {
+                value = caseData.caseName || '';
+            } else if (caseData.caseData) {
+                if (fieldName === 'defendants') {
+                    value = Array.isArray(caseData.caseData.defendants) 
+                        ? caseData.caseData.defendants.join(', ') 
+                        : caseData.caseData.defendants || '';
+                } else {
+                    value = caseData.caseData[fieldName] || '';
+                }
+            }
+            
+            if (element.type === 'date' && value) {
+                // Convert date string to YYYY-MM-DD format for date inputs
+                const date = new Date(value);
+                if (!isNaN(date.getTime())) {
+                    value = date.toISOString().split('T')[0];
+                }
+            }
+            
+            element.value = value;
+        });
+    }
+
+    async saveCaseDetails() {
+        const modal = document.getElementById('case-details-modal');
+        const caseId = modal?.dataset.caseId;
+        
+        if (!caseId) return;
+        
+        const caseData = this.app.dataManager.getCase(caseId);
+        if (!caseData) return;
+        
+        // Collect form data
+        const updatedCaseData = {
+            ...caseData,
+            caseName: document.getElementById('edit-case-name-input')?.value || '',
+            caseData: {
+                caseNumber: document.getElementById('edit-case-number-input')?.value || '',
+                court: document.getElementById('edit-court-input')?.value || '',
+                judge: document.getElementById('edit-judge-input')?.value || '',
+                filingDate: document.getElementById('edit-filing-date-input')?.value || '',
+                plaintiff: document.getElementById('edit-plaintiff-input')?.value || '',
+                defendants: document.getElementById('edit-defendants-input')?.value?.split(',').map(d => d.trim()).filter(d => d) || [],
+                caseType: document.getElementById('edit-case-type-input')?.value || '',
+                jurisdiction: document.getElementById('edit-jurisdiction-input')?.value || '',
+                venue: document.getElementById('edit-venue-input')?.value || '',
+                status: document.getElementById('edit-status-input')?.value || '',
+                discoveryDeadline: document.getElementById('edit-discovery-deadline-input')?.value || '',
+                trialDate: document.getElementById('edit-trial-date-input')?.value || ''
+            }
+        };
+        
+        try {
+            // Validate and save
+            this.app.dataManager.validateCaseData(updatedCaseData);
+            await this.app.dataManager.saveCase(updatedCaseData);
+            
+            // Update the case in memory
+            const caseIndex = this.app.dataManager.cases.findIndex(c => c.caseId === caseId);
+            if (caseIndex !== -1) {
+                this.app.dataManager.cases[caseIndex] = updatedCaseData;
+            }
+            
+            // Re-render the dashboard
+            this.app.viewManager.renderCasesDashboard();
+            
+            // Hide modal
+            this.hideCaseDetailsModal();
+            
+            // Show subtle success indicator
+            this.showSaveSuccessIndicator();
+        } catch (error) {
+            console.error('Error saving case details:', error);
+            // Show error in a subtle way
+            this.showSaveErrorIndicator(error.message);
+        }
+    }
+
+    showSaveSuccessIndicator() {
+        // Create a subtle success indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'save-success-indicator';
+        indicator.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" fill="currentColor"/>
+            </svg>
+            <span>Case details saved</span>
+        `;
+        
+        document.body.appendChild(indicator);
+        
+        // Remove after 2 seconds
+        setTimeout(() => {
+            if (indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }, 2000);
+    }
+
+    showSaveErrorIndicator(errorMessage) {
+        // Create a subtle error indicator
+        const indicator = document.createElement('div');
+        indicator.className = 'save-error-indicator';
+        indicator.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" fill="currentColor"/>
+            </svg>
+            <span>Save failed: ${errorMessage}</span>
+        `;
+        
+        document.body.appendChild(indicator);
+        
+        // Remove after 4 seconds (longer for errors)
+        setTimeout(() => {
+            if (indicator.parentNode) {
+                indicator.parentNode.removeChild(indicator);
+            }
+        }, 4000);
+    }
+
+    hideCaseDetailsModal() {
+        const modal = document.getElementById('case-details-modal');
+        if (modal) {
+            modal.classList.remove('visible');
+            modal.removeAttribute('data-case-id');
         }
     }
 } 

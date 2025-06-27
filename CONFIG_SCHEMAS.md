@@ -7,10 +7,22 @@
 {
   caseId: string,           // Unique identifier (required)
   caseName: string,         // Human-readable name (required)
-  requestLetters: Array,    // Array of request letter objects
   version: "1.1",           // Data version (required, must be "1.1")
-  court?: string,           // Court information
-  caseNumber?: string,      // Official case number
+  caseData: {               // Comprehensive case information
+    caseNumber: string,     // Official case number
+    court: string,          // Court name and jurisdiction
+    judge: string,          // Presiding judge
+    filingDate: string,     // ISO date string when case was filed
+    plaintiff: string,      // Plaintiff name
+    defendants: Array<string>, // Array of defendant names
+    caseType: string,       // Type of case (e.g., "Civil Rights - Medical Negligence")
+    jurisdiction: string,   // Federal, State, or Local
+    venue: string,          // Court venue/division
+    status: string,         // Active, Pending, Settled, Closed, Appealed
+    discoveryDeadline: string, // ISO date string for discovery deadline
+    trialDate: string       // ISO date string for trial date
+  },
+  requestLetters: Array,    // Array of request letter objects
   createdAt?: string,       // ISO date string
   updatedAt?: string        // ISO date string
 }

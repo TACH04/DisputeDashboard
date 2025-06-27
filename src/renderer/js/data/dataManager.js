@@ -87,6 +87,26 @@ export class DataManager {
         if (caseData.version !== "1.1") {
             throw new Error('Invalid case data: must be version 1.1');
         }
+        
+        // Validate caseData structure if present
+        if (caseData.caseData) {
+            // Ensure defendants is always an array
+            if (caseData.caseData.defendants && !Array.isArray(caseData.caseData.defendants)) {
+                caseData.caseData.defendants = [caseData.caseData.defendants];
+            }
+            
+            // Validate date formats
+            const dateFields = ['filingDate', 'discoveryDeadline', 'trialDate'];
+            dateFields.forEach(field => {
+                if (caseData.caseData[field] && caseData.caseData[field] !== '') {
+                    const date = new Date(caseData.caseData[field]);
+                    if (isNaN(date.getTime())) {
+                        throw new Error(`Invalid date format for ${field}`);
+                    }
+                }
+            });
+        }
+        
         return true;
     }
 

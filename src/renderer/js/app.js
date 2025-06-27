@@ -102,6 +102,17 @@ class App {
         const caseData = this.getCurrentCase();
         return caseData?.requestLetters.find(l => l.id === this.state.currentLetterId);
     }
+
+    /**
+     * Test function for debugging zoom functionality
+     * 
+     * @description Exposes zoom testing functionality for debugging
+     */
+    testZoom() {
+        if (this.eventHandlers) {
+            this.eventHandlers.testZoom();
+        }
+    }
 }
 
 // Initialize app when DOM is ready

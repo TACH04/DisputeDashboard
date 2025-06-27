@@ -229,21 +229,18 @@
                 <div class="letter-preview-panel">
                     <div class="preview-toolbar">
                         <div class="preview-controls">
-                            <button class="btn btn-secondary" onclick="zoomIn()">
+                            <div class="zoom-info" title="Use CTRL + Scroll Wheel to zoom in and out">
                                 <svg width="16" height="16" viewBox="0 0 16 16">
-                                    <path d="M8 4v8M4 8h8" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M8 1v14M1 8h14" stroke="currentColor" stroke-width="2"/>
                                 </svg>
-                            </button>
-                            <button class="btn btn-secondary" onclick="zoomOut()">
-                                <svg width="16" height="16" viewBox="0 0 16 16">
-                                    <path d="M4 8h8" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
+                                <span>CTRL + Scroll to zoom</span>
+                            </div>
+                            <button class="btn btn-secondary" data-action="zoom-reset" title="Reset Zoom">100%</button>
                             <span id="zoom-level">100%</span>
                         </div>
                         <div class="export-controls">
-                            <button class="btn btn-secondary" onclick="exportLetter('pdf')">Export PDF</button>
-                            <button class="btn btn-secondary" onclick="exportLetter('docx')">Export DOCX</button>
+                            <button class="btn btn-secondary" data-action="export-pdf">Export PDF</button>
+                            <button class="btn btn-secondary" data-action="export-docx">Export DOCX</button>
                         </div>
                     </div>
                     <div id="letter-preview-container">
@@ -266,6 +263,65 @@
                     <label for="case-name-input">Case Name</label>
                     <input type="text" id="case-name-input" placeholder="Enter case name...">
                 </div>
+                <div class="input-group">
+                    <label for="case-number-input">Case Number</label>
+                    <input type="text" id="case-number-input" placeholder="e.g., CV-2024-000123">
+                </div>
+                <div class="input-group">
+                    <label for="court-input">Court</label>
+                    <input type="text" id="court-input" placeholder="e.g., United States District Court for the District of Arizona">
+                </div>
+                <div class="input-group">
+                    <label for="judge-input">Judge</label>
+                    <input type="text" id="judge-input" placeholder="e.g., Hon. John Smith">
+                </div>
+                <div class="input-group">
+                    <label for="filing-date-input">Filing Date</label>
+                    <input type="date" id="filing-date-input">
+                </div>
+                <div class="input-group">
+                    <label for="plaintiff-input">Plaintiff</label>
+                    <input type="text" id="plaintiff-input" placeholder="Enter plaintiff name">
+                </div>
+                <div class="input-group">
+                    <label for="defendants-input">Defendants (comma-separated)</label>
+                    <input type="text" id="defendants-input" placeholder="e.g., Navajo County, Wexford Health Sources, Inc.">
+                </div>
+                <div class="input-group">
+                    <label for="case-type-input">Case Type</label>
+                    <input type="text" id="case-type-input" placeholder="e.g., Civil Rights - Medical Negligence">
+                </div>
+                <div class="input-group">
+                    <label for="jurisdiction-input">Jurisdiction</label>
+                    <select id="jurisdiction-input">
+                        <option value="">Select jurisdiction</option>
+                        <option value="Federal">Federal</option>
+                        <option value="State">State</option>
+                        <option value="Local">Local</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="venue-input">Venue</label>
+                    <input type="text" id="venue-input" placeholder="e.g., Phoenix Division">
+                </div>
+                <div class="input-group">
+                    <label for="status-input">Status</label>
+                    <select id="status-input">
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Settled">Settled</option>
+                        <option value="Closed">Closed</option>
+                        <option value="Appealed">Appealed</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="discovery-deadline-input">Discovery Deadline</label>
+                    <input type="date" id="discovery-deadline-input">
+                </div>
+                <div class="input-group">
+                    <label for="trial-date-input">Trial Date</label>
+                    <input type="date" id="trial-date-input">
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hideAddCaseModal()">Cancel</button>
@@ -274,21 +330,97 @@
         </div>
     </div>
 
-    <div class="modal-overlay" id="edit-case-modal">
-        <div class="modal">
+    <div class="modal-overlay" id="case-details-modal">
+        <div class="modal case-details-modal">
             <div class="modal-header">
-                <h3>Edit Case Name</h3>
-                <button class="modal-close" onclick="hideEditCaseModal()">×</button>
+                <h3>Edit Case Details</h3>
+                <button class="modal-close" onclick="hideCaseDetailsModal()">×</button>
             </div>
-            <div class="modal-body">
-                <div class="input-group">
-                    <label for="edit-case-name-input">Case Name</label>
-                    <input type="text" id="edit-case-name-input">
+            <div class="modal-body case-details-body">
+                <div class="case-details-form">
+                    <div class="form-section">
+                        <h4>Basic Information</h4>
+                        <div class="input-group">
+                            <label for="edit-case-name-input">Case Name *</label>
+                            <input type="text" id="edit-case-name-input" placeholder="Enter case name">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-case-number-input">Case Number</label>
+                            <input type="text" id="edit-case-number-input" placeholder="e.g., CV-2024-000123">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-court-input">Court</label>
+                            <input type="text" id="edit-court-input" placeholder="e.g., United States District Court">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-judge-input">Judge</label>
+                            <input type="text" id="edit-judge-input" placeholder="e.g., Hon. John Smith">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Parties</h4>
+                        <div class="input-group">
+                            <label for="edit-plaintiff-input">Plaintiff</label>
+                            <input type="text" id="edit-plaintiff-input" placeholder="Enter plaintiff name">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-defendants-input">Defendants</label>
+                            <input type="text" id="edit-defendants-input" placeholder="Separate multiple defendants with commas">
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Case Details</h4>
+                        <div class="input-group">
+                            <label for="edit-case-type-input">Case Type</label>
+                            <input type="text" id="edit-case-type-input" placeholder="e.g., Civil Rights - Medical Negligence">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-jurisdiction-input">Jurisdiction</label>
+                            <select id="edit-jurisdiction-input">
+                                <option value="">Select jurisdiction</option>
+                                <option value="Federal">Federal</option>
+                                <option value="State">State</option>
+                                <option value="Local">Local</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-venue-input">Venue</label>
+                            <input type="text" id="edit-venue-input" placeholder="e.g., Phoenix Division">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-status-input">Status</label>
+                            <select id="edit-status-input">
+                                <option value="Active">Active</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Settled">Settled</option>
+                                <option value="Closed">Closed</option>
+                                <option value="Appealed">Appealed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h4>Important Dates</h4>
+                        <div class="input-group">
+                            <label for="edit-filing-date-input">Filing Date</label>
+                            <input type="date" id="edit-filing-date-input">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-discovery-deadline-input">Discovery Deadline</label>
+                            <input type="date" id="edit-discovery-deadline-input">
+                        </div>
+                        <div class="input-group">
+                            <label for="edit-trial-date-input">Trial Date</label>
+                            <input type="date" id="edit-trial-date-input">
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="hideEditCaseModal()">Cancel</button>
-                <button class="btn btn-primary" onclick="saveEditedCase()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="hideCaseDetailsModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveCaseDetails()">Save Changes</button>
             </div>
         </div>
     </div>
@@ -317,8 +449,8 @@
             <div class="modal-header">
                 <h3>Discovery Response Letter</h3>
                 <div>
-                    <button class="btn btn-secondary" onclick="exportResponseLetter('docx')">Export as DOCX</button>
-                    <button class="btn btn-secondary" onclick="exportResponseLetter('pdf')">Export as PDF</button>
+                    <button class="btn btn-secondary" data-action="export-docx">Export as DOCX</button>
+                    <button class="btn btn-secondary" data-action="export-pdf">Export as PDF</button>
                     <button class="modal-close" onclick="hideResponseLetterModal()">×</button>
                 </div>
             </div>
@@ -514,7 +646,6 @@
         function showResponseLetterModal() { /* TODO: Implement */ }
         function hideResponseLetterModal() { /* TODO: Implement */ }
         function saveResponseLetter() { /* TODO: Implement */ }
-        function exportResponseLetter() { /* TODO: Implement */ }
         function showVersionHistoryModal() { /* TODO: Implement */ }
         function hideVersionHistoryModal() { 
             const modal = document.getElementById('version-history-modal');
@@ -524,9 +655,6 @@
             const modal = document.getElementById('preview-modal');
             if (modal) modal.classList.remove('visible');
         }
-        function zoomIn() { /* TODO: Implement */ }
-        function zoomOut() { /* TODO: Implement */ }
-        function exportLetter() { /* TODO: Implement */ }
         
         async function cleanupOldCases() {
             try {
@@ -537,6 +665,19 @@
             } catch (error) {
                 console.error('Error during cleanup:', error);
                 alert('Error during cleanup: ' + error.message);
+            }
+        }
+
+        // Case details modal functions
+        function hideCaseDetailsModal() {
+            if (window.app && window.app.eventHandlers) {
+                window.app.eventHandlers.hideCaseDetailsModal();
+            }
+        }
+        
+        function saveCaseDetails() {
+            if (window.app && window.app.eventHandlers) {
+                window.app.eventHandlers.saveCaseDetails();
             }
         }
     </script>

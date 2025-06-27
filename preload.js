@@ -39,5 +39,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Response letter version management
   saveResponseLetterVersion: (data) => ipcRenderer.invoke('save-response-letter-version', data),
   getResponseLetterVersions: (data) => ipcRenderer.invoke('get-response-letter-versions', data),
-  getResponseLetterVersion: (data) => ipcRenderer.invoke('get-response-letter-version', data)
+  getResponseLetterVersion: (data) => ipcRenderer.invoke('get-response-letter-version', data),
+
+  // Export functions
+  exportLetterToPDF: (content, fileName) => ipcRenderer.invoke('export-letter', { content, format: 'pdf', fileName }),
+  exportLetterToDOCX: (content, fileName) => ipcRenderer.invoke('export-letter', { content, format: 'docx', fileName })
 });

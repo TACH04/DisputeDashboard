@@ -59,7 +59,10 @@ bartelle/
 ## 🔧 Key Features
 
 ### Case Management
-- Create and organize legal cases
+- Create and organize legal cases with comprehensive case information
+- **Complete case details**: Case numbers, court information, judge, parties, dates, and status
+- **Editable case information**: Update case details through an intuitive edit interface
+- **Case status tracking**: Monitor case progress with status indicators
 - Manage multiple request letters per case
 - Track discovery requests and objections
 
@@ -74,6 +77,7 @@ bartelle/
 - Real-time preview and editing
 - **Save generated letters with version history**
 - **View and load previously saved letter versions**
+- **Export letters with professional formatting**
 
 ### User Experience
 - Dark/light theme support

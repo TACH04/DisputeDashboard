@@ -30,6 +30,7 @@ export class ViewManager {
         this.updateLetterStats();
         this.updateEditorHeader();
         this.checkForSavedLetters();
+        this.initializeZoom();
     }
 
     showUserProfile() {
@@ -66,8 +67,20 @@ export class ViewManager {
             card.className = 'case-card';
             card.dataset.caseId = caseData.caseId;
             card.innerHTML = `
-                <h3>${caseData.caseName}</h3>
-                <p><b>Letters:</b> ${caseData.requestLetters.length}</p>
+                <div class="case-card-header">
+                    <h3>${caseData.caseName}</h3>
+                    <button class="edit-button" data-action="edit-case-details" title="Edit Case Details">
+                        <svg width="16" height="16" viewBox="0 0 24 24">
+                            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="case-card-details">
+                    <p><b>Case Number:</b> ${caseData.caseData?.caseNumber || 'Not set'}</p>
+                    <p><b>Court:</b> ${caseData.caseData?.court || 'Not set'}</p>
+                    <p><b>Status:</b> ${caseData.caseData?.status || 'Not set'}</p>
+                    <p><b>Letters:</b> ${caseData.requestLetters.length}</p>
+                </div>
             `;
             grid.appendChild(card);
         });
@@ -356,5 +369,17 @@ export class ViewManager {
 
         // The View Saved Letters button is now always present in the action bar
         // No need to dynamically add it
+    }
+
+    initializeZoom() {
+        const previewContent = document.getElementById('letter-preview-content');
+        const zoomLevel = document.getElementById('zoom-level');
+        
+        if (previewContent && zoomLevel) {
+            // Ensure zoom is reset to 100% when view is shown
+            previewContent.style.transform = 'scale(1)';
+            zoomLevel.textContent = '100%';
+            console.log('Zoom initialized to 100%');
+        }
     }
 } 
