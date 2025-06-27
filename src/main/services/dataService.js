@@ -75,6 +75,117 @@ class DataService {
         }
     }
 
+    async saveResponseLetterVersion(caseId, letterId, content, stats) {
+        try {
+            const caseDir = path.join(DATA_DIR, caseId);
+            const versionsDir = path.join(caseDir, 'versions');
+            
+            if (!fs.existsSync(versionsDir)) {
+                fs.mkdirSync(versionsDir, { recursive: true });
+            }
+
+            // Get next version ID for this specific letter
+            const existingVersions = await this.getResponseLetterVersions(caseId, letterId);
+            const nextId = existingVersions.length > 0 ? Math.max(...existingVersions.map(v => v.id)) + 1 : 1;
+
+            const version = {
+                id: nextId,
+                letterId: letterId,
+                caseId: caseId,
+                content: content,
+                generatedAt: new Date().toISOString(),
+                description: `Version ${nextId}`,
+                stats: stats
+            };
+
+            // Save version file with letter-specific naming to avoid conflicts
+            const versionFile = path.join(versionsDir, `${letterId}_v${version.id}.json`);
+            await fs.promises.writeFile(versionFile, JSON.stringify(version, null, 2));
+
+            // Update case data to include this version
+            const caseData = await this.loadCaseData(caseId);
+            if (caseData) {
+                if (!caseData.letterVersions) {
+                    caseData.letterVersions = [];
+                }
+                caseData.letterVersions.push(version);
+                await this.saveCaseData(caseData);
+            }
+
+            return { success: true, version: version };
+        } catch (error) {
+            console.error('Error saving response letter version:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    async getResponseLetterVersions(caseId, letterId) {
+        try {
+            const versionsDir = path.join(DATA_DIR, caseId, 'versions');
+            if (!fs.existsSync(versionsDir)) {
+                return [];
+            }
+
+            const versionFiles = await fs.promises.readdir(versionsDir);
+            const versions = [];
+
+            for (const file of versionFiles) {
+                if (file.endsWith('.json') && file.startsWith(letterId + '_v')) {
+                    const versionFile = path.join(versionsDir, file);
+                    try {
+                        const version = JSON.parse(await fs.promises.readFile(versionFile, 'utf8'));
+                        
+                        // Double-check that this version belongs to the specified letter
+                        if (version.letterId === letterId) {
+                            versions.push(version);
+                        }
+                    } catch (parseError) {
+                        console.error(`Error parsing version file ${file}:`, parseError);
+                        // Continue with other files
+                    }
+                }
+            }
+
+            // Sort by ID (newest first)
+            return versions.sort((a, b) => b.id - a.id);
+        } catch (error) {
+            console.error('Error loading response letter versions:', error);
+            return [];
+        }
+    }
+
+    async getResponseLetterVersion(caseId, versionId) {
+        try {
+            const versionsDir = path.join(DATA_DIR, caseId, 'versions');
+            if (!fs.existsSync(versionsDir)) {
+                return null;
+            }
+
+            const versionFiles = await fs.promises.readdir(versionsDir);
+            
+            // Find the file that contains this version ID
+            for (const file of versionFiles) {
+                if (file.endsWith('.json') && file.includes(`_v${versionId}.json`)) {
+                    const versionFile = path.join(versionsDir, file);
+                    try {
+                        const version = JSON.parse(await fs.promises.readFile(versionFile, 'utf8'));
+                        if (version.id === versionId) {
+                            return version;
+                        }
+                    } catch (parseError) {
+                        console.error(`Error parsing version file ${file}:`, parseError);
+                        // Continue with other files
+                    }
+                }
+            }
+            
+            return null;
+        } catch (error) {
+            console.error('Error loading response letter version:', error);
+            return null;
+        }
+    }
+
     async loadCaseData(caseId) {
         try {
             const caseDir = path.join(DATA_DIR, caseId);

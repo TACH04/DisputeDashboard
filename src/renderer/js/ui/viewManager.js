@@ -29,6 +29,7 @@ export class ViewManager {
         this.switchView('letter-editor-active');
         this.updateLetterStats();
         this.updateEditorHeader();
+        this.checkForSavedLetters();
     }
 
     showUserProfile() {
@@ -236,8 +237,18 @@ export class ViewManager {
         
         if (!totalRequests || !withObjections || !withResponses || !pending) return;
 
-        // This would need access to the data manager
-        console.log('Updating letter statistics');
+        const caseData = window.app?.getCurrentCase();
+        const letterData = window.app?.getCurrentLetter();
+        
+        if (!caseData || !letterData) return;
+
+        const stats = window.app?.dataManager?.getLetterStats(caseData.caseId, letterData.id);
+        if (!stats) return;
+
+        totalRequests.textContent = stats.totalRequests;
+        withObjections.textContent = stats.withObjections;
+        withResponses.textContent = stats.withResponses;
+        pending.textContent = stats.pending;
     }
 
     updateEditorHeader() {
@@ -246,8 +257,13 @@ export class ViewManager {
         
         if (!header || !subtitle) return;
 
-        // This would need access to the data manager
-        console.log('Updating editor header');
+        const caseData = window.app?.getCurrentCase();
+        const letterData = window.app?.getCurrentLetter();
+        
+        if (!caseData || !letterData) return;
+
+        header.textContent = 'Response Letter Editor';
+        subtitle.textContent = `${caseData.caseName} - ${letterData.description}`;
     }
 
     async loadUserProfile() {
@@ -297,30 +313,48 @@ export class ViewManager {
         if (modal) modal.classList.remove('visible');
     }
 
-    saveUserProfile() {
-        // Collect form data
-        const profile = {
-            name: document.getElementById('profile-name')?.value || '',
-            title: document.getElementById('profile-title')?.value || '',
-            email: document.getElementById('profile-email')?.value || '',
-            phone: document.getElementById('profile-phone')?.value || '',
-            org: document.getElementById('profile-org')?.value || '',
-            orgAddress: document.getElementById('profile-org-address')?.value || '',
-            barNumber: document.getElementById('profile-bar-number')?.value || '',
-            signature: document.getElementById('profile-signature')?.value || '',
-            apiKey: document.getElementById('profile-api-key')?.value || ''
-        };
-        const statusText = document.getElementById('profile-status-text');
-        if (statusText) statusText.textContent = 'Saving...';
-        window.electronAPI.saveUserProfile(profile).then(result => {
+    async saveUserProfile() {
+        try {
+            // Collect form data
+            const profile = {
+                name: document.getElementById('profile-name')?.value || '',
+                title: document.getElementById('profile-title')?.value || '',
+                email: document.getElementById('profile-email')?.value || '',
+                phone: document.getElementById('profile-phone')?.value || '',
+                org: document.getElementById('profile-org')?.value || '',
+                orgAddress: document.getElementById('profile-org-address')?.value || '',
+                barNumber: document.getElementById('profile-bar-number')?.value || '',
+                signature: document.getElementById('profile-signature')?.value || '',
+                apiKey: document.getElementById('profile-api-key')?.value || ''
+            };
+
+            const statusText = document.getElementById('profile-status-text');
+            if (statusText) statusText.textContent = 'Saving...';
+
+            const result = await window.electronAPI.saveUserProfile(profile);
+            
             if (result && result.success) {
-                if (statusText) statusText.textContent = 'Profile saved!';
-                setTimeout(() => { if (statusText) statusText.textContent = ''; }, 2000);
+                if (statusText) statusText.textContent = 'Profile saved successfully!';
+                setTimeout(() => { 
+                    if (statusText) statusText.textContent = ''; 
+                }, 2000);
             } else {
-                if (statusText) statusText.textContent = 'Error saving profile.';
+                if (statusText) statusText.textContent = 'Error saving profile: ' + (result?.error || 'Unknown error');
             }
-        }).catch(() => {
-            if (statusText) statusText.textContent = 'Error saving profile.';
-        });
+        } catch (error) {
+            console.error('Error saving user profile:', error);
+            const statusText = document.getElementById('profile-status-text');
+            if (statusText) statusText.textContent = 'Error saving profile: ' + error.message;
+        }
+    }
+
+    async checkForSavedLetters() {
+        const caseData = window.app?.getCurrentCase();
+        const letterData = window.app?.getCurrentLetter();
+        
+        if (!caseData || !letterData) return;
+
+        // The View Saved Letters button is now always present in the action bar
+        // No need to dynamically add it
     }
 } 

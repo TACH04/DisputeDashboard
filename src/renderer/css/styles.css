@@ -214,6 +214,12 @@ tr:hover .edit-button {
     transform: rotate(45deg);
 }
 
+.menu-toggle svg {
+    width: 20px;
+    height: 20px;
+    fill: var(--text-primary);
+}
+
 .menu-items {
     position: absolute;
     bottom: 100%;
@@ -1066,6 +1072,11 @@ body.letter-editor-active #response-letter-editor-view {
     align-items: center;
     padding: 12px;
     border-bottom: 1px solid var(--border-light);
+    transition: background-color 0.2s ease;
+}
+
+.version-item:hover {
+    background-color: var(--surface-secondary);
 }
 
 .version-item:last-child {
@@ -1079,6 +1090,13 @@ body.letter-editor-active #response-letter-editor-view {
 .version-date {
     font-size: 0.9rem;
     color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.version-info > div:nth-child(2) {
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
 }
 
 .version-actions {
@@ -1086,11 +1104,56 @@ body.letter-editor-active #response-letter-editor-view {
     gap: 8px;
 }
 
+.version-actions .btn {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+}
+
 .letter-preview-container {
     background: white;
     padding: 40px;
     margin: 20px;
     box-shadow: var(--shadow-md);
+}
+
+/* Preview modal specific styles */
+#preview-modal .letter-preview-container {
+    background: white;
+    padding: 20px;
+    margin: 0;
+    box-shadow: none;
+    border-radius: 0;
+    max-height: 70vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-light);
+}
+
+#preview-content {
+    background: white !important;
+    color: black !important;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12pt;
+    line-height: 1.5;
+    padding: 0;
+    margin: 0;
+    max-width: 8.5in;
+    min-height: auto;
+    box-shadow: none;
+    transform: none;
+}
+
+#preview-content * {
+    color: black !important;
+    background-color: transparent !important;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+/* Ensure the preview modal body takes up available space */
+#preview-modal .modal-body {
+    flex-grow: 1;
+    overflow: hidden;
+    margin-bottom: 0;
 }
 
 /* Add to your existing styles */

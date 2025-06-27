@@ -26,7 +26,7 @@
         </div>
         <button class="menu-toggle" onclick="toggleMenu()" title="Menu">
             <svg viewBox="0 0 24 24" width="24" height="24">
-                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor"/>
+                <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
             </svg>
         </button>
     </div>
@@ -167,6 +167,8 @@
             <div class="action-bar">
                 <button class="btn btn-secondary" data-action="back-to-disputes">← Back to Disputes</button>
                 <button class="btn btn-action" data-action="generate-letter">Build Response Letter</button>
+                <button class="btn btn-primary" data-action="save-current-letter">Save Current Letter</button>
+                <button class="btn btn-secondary" data-action="view-saved-letters">View Saved Letters</button>
             </div>
 
             <div class="letter-editor-grid">
@@ -347,7 +349,7 @@
     </div>
 
     <div class="modal-overlay" id="preview-modal">
-        <div class="modal letter-modal">
+        <div class="modal letter-modal" style="max-width: 90%; height: 90vh;">
             <div class="modal-header">
                 <h3 id="preview-modal-title">Preview Version</h3>
                 <button class="modal-close" onclick="hidePreviewModal()">×</button>
@@ -373,7 +375,7 @@
             
             <div class="action-bar">
                 <button class="btn btn-secondary" data-action="back-to-previous">← Back</button>
-                <button id="save-profile-btn" class="btn btn-primary" onclick="saveUserProfile()">Save Changes</button>
+                <button id="save-profile-btn" class="btn btn-primary" data-action="save-profile">Save Changes</button>
                 <span id="profile-status-text" style="color: var(--text-secondary); margin-left: 16px;"></span>
             </div>
 
@@ -514,9 +516,14 @@
         function saveResponseLetter() { /* TODO: Implement */ }
         function exportResponseLetter() { /* TODO: Implement */ }
         function showVersionHistoryModal() { /* TODO: Implement */ }
-        function hideVersionHistoryModal() { /* TODO: Implement */ }
-        function hidePreviewModal() { /* TODO: Implement */ }
-        function saveUserProfile() { /* TODO: Implement */ }
+        function hideVersionHistoryModal() { 
+            const modal = document.getElementById('version-history-modal');
+            if (modal) modal.classList.remove('visible');
+        }
+        function hidePreviewModal() { 
+            const modal = document.getElementById('preview-modal');
+            if (modal) modal.classList.remove('visible');
+        }
         function zoomIn() { /* TODO: Implement */ }
         function zoomOut() { /* TODO: Implement */ }
         function exportLetter() { /* TODO: Implement */ }

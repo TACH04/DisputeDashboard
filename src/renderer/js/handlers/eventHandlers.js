@@ -130,6 +130,9 @@ export class EventHandlers {
             case 'build-letter': this.app.viewManager.showLetterEditor(); break;
             case 'back-to-disputes': this.app.viewManager.showDisputeListView(this.app.state.currentLetterId); break;
             case 'generate-letter': this.handleGenerateLetter(); break;
+            case 'view-saved-letters': this.handleViewSavedLetters(); break;
+            case 'save-current-letter': this.saveCurrentLetter(); break;
+            case 'save-profile': this.app.viewManager.saveUserProfile(); break;
             default:
                 console.log('Unknown action:', action); // Debug log
         }
@@ -606,6 +609,27 @@ export class EventHandlers {
             previewContent.innerHTML += conclusionResult.html;
             // 4. Formatting
             setStage('formatting', 100, 'Final formatting...');
+            
+            // 5. Save the generated letter
+            setStage('formatting', 100, 'Saving letter...');
+            const stats = this.app.dataManager.getLetterStats(caseData.caseId, letterData.id);
+            if (stats) {
+                const saveResult = await window.electronAPI.saveResponseLetterVersion({
+                    caseId: caseData.caseId,
+                    letterId: letterData.id,
+                    content: previewContent.innerHTML,
+                    stats: stats
+                });
+                
+                if (saveResult.success) {
+                    progressStatus.textContent = `Letter saved as Version ${saveResult.version.id}`;
+                } else {
+                    progressStatus.textContent = 'Letter generated but failed to save: ' + (saveResult.error || 'Unknown error');
+                }
+            } else {
+                progressStatus.textContent = 'Letter generated but failed to save: Could not get letter statistics';
+            }
+            
             setTimeout(() => { progressPanel.style.display = 'none'; }, 1500);
         } catch (error) {
             progressStatus.textContent = 'Error: ' + error.message;
@@ -614,6 +638,192 @@ export class EventHandlers {
         } finally {
             button.disabled = false;
             button.textContent = 'Build Response Letter';
+        }
+    }
+
+    async handleViewSavedLetters() {
+        const caseData = this.app.getCurrentCase();
+        const letterData = this.app.getCurrentLetter();
+        
+        if (!caseData || !letterData) {
+            alert('No case or letter selected.');
+            return;
+        }
+
+        try {
+            const versions = await window.electronAPI.getResponseLetterVersions({
+                caseId: caseData.caseId,
+                letterId: letterData.id
+            });
+
+            if (versions.length === 0) {
+                alert('No saved letters found for this request letter.\n\nGenerate a response letter first, then you can view and manage saved versions here.');
+                return;
+            }
+
+            this.showVersionHistoryModal(versions);
+        } catch (error) {
+            console.error('Error loading saved letters:', error);
+            alert('Error loading saved letters: ' + error.message);
+        }
+    }
+
+    showVersionHistoryModal(versions) {
+        const modal = document.getElementById('version-history-modal');
+        const versionList = document.getElementById('version-list');
+        
+        if (!modal || !versionList) return;
+
+        versionList.innerHTML = '';
+        
+        if (versions.length === 0) {
+            versionList.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                    <p>No saved versions found for this request letter.</p>
+                    <p>Generate a response letter first to create saved versions.</p>
+                </div>
+            `;
+        } else {
+            versions.forEach(version => {
+                const versionItem = document.createElement('div');
+                versionItem.className = 'version-item';
+                
+                const date = new Date(version.generatedAt).toLocaleString();
+                const stats = version.stats;
+                
+                versionItem.innerHTML = `
+                    <div class="version-info">
+                        <div class="version-date">${date}</div>
+                        <div>${version.description}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                            ${stats.totalRequests} requests, ${stats.withObjections} objections, ${stats.withResponses} responses
+                        </div>
+                    </div>
+                    <div class="version-actions">
+                        <button class="btn btn-secondary" onclick="window.app.eventHandlers.previewVersion(${version.id})">Preview</button>
+                        <button class="btn btn-primary" onclick="window.app.eventHandlers.loadVersion(${version.id})">Load</button>
+                    </div>
+                `;
+                
+                versionList.appendChild(versionItem);
+            });
+        }
+
+        modal.classList.add('visible');
+    }
+
+    async previewVersion(versionId) {
+        const caseData = this.app.getCurrentCase();
+        if (!caseData) return;
+
+        try {
+            const version = await window.electronAPI.getResponseLetterVersion({
+                caseId: caseData.caseId,
+                versionId: versionId
+            });
+
+            if (!version) {
+                alert('Version not found.');
+                return;
+            }
+
+            const modal = document.getElementById('preview-modal');
+            const title = document.getElementById('preview-modal-title');
+            const content = document.getElementById('preview-content');
+            
+            if (!modal || !title || !content) return;
+
+            title.textContent = `Preview - ${version.description}`;
+            content.innerHTML = version.content;
+            modal.classList.add('visible');
+        } catch (error) {
+            console.error('Error previewing version:', error);
+            alert('Error previewing version: ' + error.message);
+        }
+    }
+
+    async loadVersion(versionId) {
+        const caseData = this.app.getCurrentCase();
+        if (!caseData) return;
+
+        try {
+            const version = await window.electronAPI.getResponseLetterVersion({
+                caseId: caseData.caseId,
+                versionId: versionId
+            });
+
+            if (!version) {
+                alert('Version not found.');
+                return;
+            }
+
+            const previewContent = document.getElementById('letter-preview-content');
+            if (previewContent) {
+                previewContent.innerHTML = version.content;
+            }
+
+            // Hide the version history modal
+            const modal = document.getElementById('version-history-modal');
+            if (modal) {
+                modal.classList.remove('visible');
+            }
+
+            // Show success message
+            const progressPanel = document.querySelector('.generation-progress');
+            if (progressPanel) {
+                progressPanel.style.display = '';
+                const progressStatus = progressPanel.querySelector('.progress-status');
+                if (progressStatus) {
+                    progressStatus.textContent = `Loaded ${version.description}`;
+                    setTimeout(() => {
+                        progressPanel.style.display = 'none';
+                    }, 2000);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading version:', error);
+            alert('Error loading version: ' + error.message);
+        }
+    }
+
+    async saveCurrentLetter() {
+        const caseData = this.app.getCurrentCase();
+        const letterData = this.app.getCurrentLetter();
+        const previewContent = document.getElementById('letter-preview-content');
+        
+        if (!caseData || !letterData || !previewContent) {
+            alert('No case, letter, or content to save.');
+            return;
+        }
+
+        const content = previewContent.innerHTML.trim();
+        if (!content) {
+            alert('No content to save.');
+            return;
+        }
+
+        try {
+            const stats = this.app.dataManager.getLetterStats(caseData.caseId, letterData.id);
+            if (!stats) {
+                alert('Could not get letter statistics.');
+                return;
+            }
+
+            const saveResult = await window.electronAPI.saveResponseLetterVersion({
+                caseId: caseData.caseId,
+                letterId: letterData.id,
+                content: content,
+                stats: stats
+            });
+
+            if (saveResult.success) {
+                alert(`Letter saved as Version ${saveResult.version.id}`);
+            } else {
+                alert('Failed to save letter: ' + (saveResult.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error('Error saving current letter:', error);
+            alert('Error saving letter: ' + error.message);
         }
     }
 

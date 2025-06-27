@@ -41,6 +41,24 @@
 }
 ```
 
+### Response Letter Version Schema
+```javascript
+{
+  id: number,               // Unique version identifier (auto-increment)
+  letterId: string,         // Associated request letter ID (required)
+  caseId: string,           // Associated case ID (required)
+  content: string,          // HTML content of the generated letter (required)
+  generatedAt: string,      // ISO date string when generated (required)
+  description: string,      // Human-readable description (e.g., "Version 1", "Updated with new objections")
+  stats: {                  // Statistics at time of generation
+    totalRequests: number,
+    withObjections: number,
+    withResponses: number,
+    pending: number
+  }
+}
+```
+
 ### User Profile Schema
 ```javascript
 {

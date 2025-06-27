@@ -34,5 +34,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getOSInfo: () => process.platform + ' ' + process.version,
 
   // Cleanup functions
-  cleanupOldCases: () => ipcRenderer.invoke('cleanup-old-cases')
+  cleanupOldCases: () => ipcRenderer.invoke('cleanup-old-cases'),
+
+  // Response letter version management
+  saveResponseLetterVersion: (data) => ipcRenderer.invoke('save-response-letter-version', data),
+  getResponseLetterVersions: (data) => ipcRenderer.invoke('get-response-letter-versions', data),
+  getResponseLetterVersion: (data) => ipcRenderer.invoke('get-response-letter-version', data)
 });

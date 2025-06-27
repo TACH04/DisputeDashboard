@@ -92,6 +92,19 @@ class IPCHandlers {
         ipcMain.handle('cleanup-old-cases', async () => {
             return await this.dataService.cleanupOldFormatCases();
         });
+
+        // Response letter version management
+        ipcMain.handle('save-response-letter-version', async (event, { caseId, letterId, content, stats }) => {
+            return await this.dataService.saveResponseLetterVersion(caseId, letterId, content, stats);
+        });
+
+        ipcMain.handle('get-response-letter-versions', async (event, { caseId, letterId }) => {
+            return await this.dataService.getResponseLetterVersions(caseId, letterId);
+        });
+
+        ipcMain.handle('get-response-letter-version', async (event, { caseId, versionId }) => {
+            return await this.dataService.getResponseLetterVersion(caseId, versionId);
+        });
     }
 
     async handleUploadAndProcess(event, requestsFromUI) {

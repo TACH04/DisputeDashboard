@@ -72,12 +72,21 @@ bartelle/
 - Build professional response letters
 - Export to PDF and DOCX formats
 - Real-time preview and editing
+- **Save generated letters with version history**
+- **View and load previously saved letter versions**
 
 ### User Experience
 - Dark/light theme support
 - Auto-save functionality
 - Responsive design
 - Keyboard navigation
+
+### Response Letter Management
+- **Automatic Saving**: Generated letters are automatically saved with version tracking
+- **Version History**: View all previously generated versions of a response letter
+- **Preview & Load**: Preview any saved version or load it back into the editor
+- **Manual Saving**: Save the current letter content manually at any time
+- **Statistics Tracking**: Each saved version includes statistics about the case state when generated
 
 ## 🛠️ Development
 

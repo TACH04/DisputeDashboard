@@ -108,15 +108,6 @@ class App {
 document.addEventListener('DOMContentLoaded', () => {
     /** @type {App} Global application instance accessible to all modules */
     window.app = new App();
-
-    // Add delegated event listener for Save Changes button in user profile
-    document.body.addEventListener('click', (event) => {
-        if (event.target && event.target.id === 'save-profile-btn') {
-            if (window.app && window.app.viewManager && typeof window.app.viewManager.saveUserProfile === 'function') {
-                window.app.viewManager.saveUserProfile();
-            }
-        }
-    });
 });
 
 export { App }; 
