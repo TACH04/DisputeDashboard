@@ -388,9 +388,119 @@ export class EventHandlers {
     }
 
     handleLetterProgress(progress) {
-        // Optionally, update UI here if you want to show backend progress events
-        // For now, we update in handleGenerateLetter directly
-        // Example: console.log('Letter progress:', progress);
+        console.log('Letter progress:', progress);
+        
+        const progressContainer = document.querySelector('.generation-progress');
+        const progressBar = progressContainer?.querySelector('.progress-bar');
+        const progressStatus = progressContainer?.querySelector('.progress-status');
+        const previewContent = document.getElementById('letter-preview-content');
+        
+        if (!progressContainer || !progressBar || !progressStatus) {
+            console.warn('Progress elements not found');
+            return;
+        }
+        
+        // Show progress container if hidden
+        if (progressContainer.style.display === 'none') {
+            progressContainer.style.display = 'block';
+        }
+        
+        if (progress.type === 'progress') {
+            // Update progress bar
+            progressBar.style.width = `${progress.progress}%`;
+            
+            // Update status message
+            progressStatus.textContent = progress.message;
+            
+            // Update stage indicators
+            const stages = progressContainer.querySelectorAll('.progress-stage');
+            stages.forEach(stage => {
+                const stageName = stage.getAttribute('data-stage');
+                stage.classList.remove('active', 'completed');
+                
+                if (stageName === progress.stage) {
+                    stage.classList.add('active');
+                } else if (this.isStageCompleted(progress.stage, stageName)) {
+                    stage.classList.add('completed');
+                }
+            });
+            
+            // Show real-time content updates in preview
+            if (previewContent && progress.html) {
+                // If this is the first content, start fresh
+                if (progress.stage === 'header') {
+                    previewContent.innerHTML = `
+                        <div class="letter-container">
+                            ${progress.html}
+                        </div>
+                    `;
+                } else if (progress.stage === 'body' && progress.sectionHtml) {
+                    // Add new request sections to existing content
+                    const container = previewContent.querySelector('.letter-container');
+                    if (container) {
+                        // Find where to insert the new section (before the conclusion)
+                        const conclusion = container.querySelector('.conclusion');
+                        if (conclusion) {
+                            // Insert before conclusion
+                            conclusion.insertAdjacentHTML('beforebegin', progress.sectionHtml);
+                        } else {
+                            // No conclusion yet, append to end
+                            container.insertAdjacentHTML('beforeend', progress.sectionHtml);
+                        }
+                    }
+                } else if (progress.stage === 'conclusion' && progress.html) {
+                    // Add conclusion to existing content
+                    const container = previewContent.querySelector('.letter-container');
+                    if (container) {
+                        container.insertAdjacentHTML('beforeend', progress.html);
+                    }
+                } else if (progress.stage === 'body' && progress.html && !progress.sectionHtml) {
+                    // This might be a complete letter from single-pass generation
+                    // Check if it looks like a complete letter
+                    if (progress.html.includes('letter-container') || progress.html.includes('letterhead')) {
+                        previewContent.innerHTML = progress.html;
+                    }
+                }
+            }
+            
+        } else if (progress.type === 'complete') {
+            // Show completion
+            progressBar.style.width = '100%';
+            progressStatus.textContent = 'Letter generation complete!';
+            
+            // Mark all stages as completed
+            const stages = progressContainer.querySelectorAll('.progress-stage');
+            stages.forEach(stage => stage.classList.add('completed'));
+            
+            // Set the final complete letter content
+            if (previewContent && progress.html) {
+                previewContent.innerHTML = progress.html;
+            }
+            
+            // Hide progress after a delay
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+            }, 3000);
+            
+        } else if (progress.type === 'error') {
+            // Show error
+            progressStatus.textContent = `Error: ${progress.error}`;
+            progressStatus.style.color = 'var(--status-error)';
+            
+            // Hide progress after a delay
+            setTimeout(() => {
+                progressContainer.style.display = 'none';
+            }, 5000);
+        }
+    }
+    
+    // Helper method to determine if a stage is completed
+    isStageCompleted(currentStage, stageName) {
+        const stageOrder = ['setup', 'header', 'body', 'conclusion', 'formatting', 'complete'];
+        const currentIndex = stageOrder.indexOf(currentStage);
+        const stageIndex = stageOrder.indexOf(stageName);
+        
+        return stageIndex < currentIndex;
     }
 
     // Helper methods
@@ -601,20 +711,24 @@ export class EventHandlers {
         const stagePercents = { setup: 0, header: 10, body: 20, conclusion: 90, formatting: 100 };
         const caseData = this.app.getCurrentCase();
         const letterData = this.app.getCurrentLetter();
+        
         if (!caseData || !letterData) {
             alert('No case or letter selected.');
             return;
         }
+
         button.disabled = true;
         button.innerHTML = '<div class="loading-spinner"></div> Building...';
         previewContent.innerHTML = '';
         progressPanel.style.display = '';
         progressBar.style.width = '0%';
-        progressStatus.textContent = 'Starting letter generation...';
+        progressStatus.textContent = 'Starting professional letter generation...';
+        
         stages.forEach(stage => {
             const el = progressPanel.querySelector(`.progress-stage[data-stage="${stage}"]`);
             if (el) el.classList.remove('active', 'completed');
         });
+
         // Helper to update progress UI
         const setStage = (stage, percent, message) => {
             stages.forEach(s => {
@@ -625,32 +739,48 @@ export class EventHandlers {
             progressBar.style.width = percent + '%';
             progressStatus.textContent = message;
         };
+
         try {
-            // 1. Header
-            setStage('header', 10, 'Generating header...');
-            const headerResult = await window.electronAPI.generateLetterSection({ type: 'header', caseName: caseData.caseName, letterDescription: letterData.description });
-            if (!headerResult.success) throw new Error(headerResult.error);
-            previewContent.innerHTML = headerResult.html;
-            // 2. Each request
-            setStage('body', 20, 'Processing requests...');
-            for (let i = 0; i < letterData.requests.length; i++) {
-                setStage('body', 20 + Math.floor(60 * (i / letterData.requests.length)), `Processing request ${i + 1} of ${letterData.requests.length}...`);
-                const req = letterData.requests[i];
-                const reqResult = await window.electronAPI.generateLetterSection({ type: 'request', request: req, requestTopic: '', caseName: caseData.caseName, letterDescription: letterData.description });
-                if (!reqResult.success) throw new Error(reqResult.error);
-                previewContent.innerHTML += reqResult.html;
-            }
-            // 3. Conclusion
-            setStage('conclusion', 90, 'Adding conclusion...');
-            const conclusionResult = await window.electronAPI.generateLetterSection({ type: 'conclusion', caseName: caseData.caseName, letterDescription: letterData.description });
-            if (!conclusionResult.success) throw new Error(conclusionResult.error);
-            previewContent.innerHTML += conclusionResult.html;
-            // 4. Formatting
-            setStage('formatting', 100, 'Final formatting...');
+            // Load user profile first
+            setStage('setup', 5, 'Loading user profile...');
+            const userProfile = await window.electronAPI.loadUserProfile();
             
-            // 5. Save the generated letter
-            setStage('formatting', 100, 'Saving letter...');
+            if (!userProfile || !userProfile.name) {
+                progressStatus.textContent = 'Warning: User profile incomplete. Using default values.';
+            }
+            
+            setStage('header', 20, 'Generating professional letter header...');
+            
+            // Prepare the data for the new generation method
+            const letterGenerationData = {
+                caseData: caseData,
+                letterData: {
+                    ...letterData,
+                    recipientEmails: letterData.recipientEmails || ['opposing@counsel.com'],
+                    salutationNames: letterData.salutationNames || 'Counsel',
+                    responseDate: letterData.responseDate || new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+                },
+                userProfile: userProfile || {}
+            };
+
+            // Use the new comprehensive letter generation
+            const result = await window.electronAPI.generateCompleteLetter(letterGenerationData);
+            
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            setStage('body', 60, 'Processing legal arguments...');
+            
+            // Set the complete letter content
+            previewContent.innerHTML = result.html;
+            
+            setStage('conclusion', 90, 'Finalizing professional formatting...');
+            
+            // Save the generated letter
+            setStage('formatting', 100, 'Saving professional letter...');
             const stats = this.app.dataManager.getLetterStats(caseData.caseId, letterData.id);
+            
             if (stats) {
                 const saveResult = await window.electronAPI.saveResponseLetterVersion({
                     caseId: caseData.caseId,
@@ -660,7 +790,7 @@ export class EventHandlers {
                 });
                 
                 if (saveResult.success) {
-                    progressStatus.textContent = `Letter saved as Version ${saveResult.version.id}`;
+                    progressStatus.textContent = `Professional letter saved as Version ${saveResult.version.id}`;
                 } else {
                     progressStatus.textContent = 'Letter generated but failed to save: ' + (saveResult.error || 'Unknown error');
                 }
@@ -669,7 +799,9 @@ export class EventHandlers {
             }
             
             setTimeout(() => { progressPanel.style.display = 'none'; }, 1500);
+            
         } catch (error) {
+            console.error('Error generating letter:', error);
             progressStatus.textContent = 'Error: ' + error.message;
             progressBar.style.width = '100%';
             setTimeout(() => { progressPanel.style.display = 'none'; }, 3000);

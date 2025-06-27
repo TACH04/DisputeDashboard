@@ -70,6 +70,14 @@ class IPCHandlers {
             return await this.handleGenerateLetterSection(event, data);
         });
 
+        ipcMain.handle('generate-complete-letter', async (event, data) => {
+            return await this.handleGenerateCompleteLetter(event, data);
+        });
+
+        ipcMain.handle('generate-formatted-letter', async (event, data) => {
+            return await this.handleGenerateFormattedLetter(event, data);
+        });
+
         // Export operations
         ipcMain.handle('export-letter', async (event, { content, format, fileName }) => {
             return await this.fileService.exportLetter(content, format, fileName);
@@ -316,6 +324,105 @@ class IPCHandlers {
         } catch (error) {
             console.error('\x1b[31m%s\x1b[0m', `Error: ${error.message}`);
             parentWindow.webContents.send('letter-progress', { type: 'error', section: data.type, error: error.message });
+            return { success: false, error: error.message };
+        }
+    }
+
+    async handleGenerateCompleteLetter(event, data) {
+        const parentWindow = require('electron').BrowserWindow.fromWebContents(event.sender);
+        if (!parentWindow) return;
+
+        try {
+            const userProfile = await this.userProfileService.loadUserProfile();
+            const apiKey = userProfile?.apiKey;
+            if (!apiKey) throw new Error("Gemini API Key not found. Please set it in your User Profile.");
+            
+            this.aiService.initialize(apiKey);
+
+            // Progress updates for complete letter generation
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'progress', 
+                stage: 'setup',
+                message: 'Initializing letter generation...',
+                progress: 0
+            });
+
+            const { caseData, letterData } = data;
+
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'progress', 
+                stage: 'header',
+                message: 'Generating professional letter header...',
+                progress: 20
+            });
+
+            // Create progress callback function
+            const progressCallback = (progressData) => {
+                parentWindow.webContents.send('letter-progress', progressData);
+            };
+
+            // Use the new comprehensive letter generation method with user profile and progress callback
+            const completeLetter = await this.aiService.generateCompleteLetter(caseData, letterData, userProfile, progressCallback);
+
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'complete', 
+                html: completeLetter 
+            });
+
+            return { success: true, html: completeLetter };
+
+        } catch (error) {
+            console.error('\x1b[31m%s\x1b[0m', `Error generating complete letter: ${error.message}`);
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'error', 
+                error: error.message 
+            });
+            return { success: false, error: error.message };
+        }
+    }
+
+    async handleGenerateFormattedLetter(event, data) {
+        const parentWindow = require('electron').BrowserWindow.fromWebContents(event.sender);
+        if (!parentWindow) return;
+
+        try {
+            const userProfile = await this.userProfileService.loadUserProfile();
+            const apiKey = userProfile?.apiKey;
+            if (!apiKey) throw new Error("Gemini API Key not found. Please set it in your User Profile.");
+            
+            this.aiService.initialize(apiKey);
+
+            const { caseData, letterData } = data;
+
+            // Progress updates for modular letter generation
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'progress', 
+                stage: 'setup',
+                message: 'Initializing modular letter generation...',
+                progress: 0
+            });
+
+            // Create progress callback function
+            const progressCallback = (progressData) => {
+                parentWindow.webContents.send('letter-progress', progressData);
+            };
+
+            // Use the modular formatted letter generation method with progress callback
+            const formattedLetter = await this.aiService.generateFormattedLetter(caseData, letterData, userProfile, progressCallback);
+
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'complete', 
+                html: formattedLetter 
+            });
+
+            return { success: true, html: formattedLetter };
+
+        } catch (error) {
+            console.error('\x1b[31m%s\x1b[0m', `Error generating formatted letter: ${error.message}`);
+            parentWindow.webContents.send('letter-progress', { 
+                type: 'error', 
+                error: error.message 
+            });
             return { success: false, error: error.message };
         }
     }

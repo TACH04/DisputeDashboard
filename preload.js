@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Letter generation functions
   generateLetterSection: (data) => ipcRenderer.invoke('generate-letter-section', data),
+  generateCompleteLetter: (data) => ipcRenderer.invoke('generate-complete-letter', data),
+  generateFormattedLetter: (data) => ipcRenderer.invoke('generate-formatted-letter', data),
   onLetterProgress: (callback) => ipcRenderer.on('letter-progress', (_event, value) => callback(value)),
 
   // User profile functions

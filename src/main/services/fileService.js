@@ -53,100 +53,233 @@ class FileService {
     }
 
     async exportToPDF(content, filePath) {
-        // Create a complete HTML document with proper styling
+        // Create a complete HTML document with exact CSS specifications from Gemini analysis
         const htmlDocument = `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
                 <style>
+                    /* --- Global & Print Setup --- */
+                    @page {
+                        size: letter; /* US Letter 8.5in x 11in */
+                        margin: 1in;
+                        
+                        /* Page Numbering - Starts on Page 2 */
+                        @bottom-right {
+                            content: counter(page);
+                            font-family: 'Times New Roman', Times, serif;
+                            font-size: 12pt;
+                        }
+                    }
+
+                    @page :first {
+                        /* Suppress page number on the first page */
+                        @bottom-right {
+                            content: "";
+                        }
+                    }
+
                     body {
                         font-family: 'Times New Roman', Times, serif;
                         font-size: 12pt;
-                        line-height: 1.5;
-                        margin: 0;
-                        padding: 1in;
+                        line-height: 1.5; /* Visually consistent with 1.5 or double spacing with space after */
                         color: #000000;
-                        background: #ffffff;
-                    }
-                    .letter-header .law-firm-name {
-                        text-align: center;
-                        font-weight: bold;
-                        font-size: 14pt;
-                        margin-bottom: 0;
-                    }
-                    .letter-header .law-firm-details {
-                        text-align: center;
-                        font-size: 10pt;
-                        margin-top: 2px;
-                        margin-bottom: 3em;
-                    }
-                    .letter-meta {
-                        margin-bottom: 2em;
-                    }
-                    .letter-meta .via-email {
-                        font-weight: bold;
-                        text-transform: uppercase;
-                    }
-                    .letter-meta p {
-                        text-indent: 0;
-                        margin: 0 0 4px 0;
-                    }
-                    .re-block {
-                        margin-bottom: 2em;
-                        padding-left: 1in;
-                    }
-                    .re-block p {
+                        background-color: #ffffff;
                         margin: 0;
-                        text-indent: 0;
+                        padding: 0;
                     }
-                    .letter-body p {
-                        text-indent: 0.5in;
-                        margin: 0 0 1em 0;
+
+                    /* --- General Typography --- */
+                    p {
+                        margin-top: 0;
+                        margin-bottom: 12pt; /* Creates a single line break space after each paragraph */
+                        text-align: left;
                     }
-                    .letter-body p.no-indent {
-                        text-indent: 0;
+
+                    strong {
+                        font-weight: bold;
                     }
-                    .interrogatory-section {
-                        margin-top: 2em;
-                        margin-bottom: 2em;
+
+                    em {
+                        font-style: italic;
                     }
-                    .interrogatory-section h3.interrogatory-title {
+
+                    /* --- Letterhead Section --- */
+                    .letterhead {
+                        text-align: center;
+                        margin-bottom: 1in;
+                    }
+
+                    .letterhead-title {
+                        font-size: 14pt;
+                        font-weight: bold;
+                        margin: 0;
+                    }
+
+                    .contact-info {
+                        font-size: 11pt;
+                        margin: 2pt 0; /* Tighter spacing for contact lines */
+                        line-height: 1.2;
+                    }
+
+                    /* --- Header & Caption Section --- */
+                    .date {
+                        margin-bottom: 24pt;
+                    }
+
+                    .recipient-info {
+                        margin-bottom: 24pt;
+                    }
+
+                    .recipient-info p {
+                        margin: 0;
+                        line-height: 1.2;
+                    }
+
+                    .case-caption p {
+                        /* Creates a hanging indent for the "RE:" block */
+                        padding-left: 3.5em; 
+                        text-indent: -3.5em;
+                    }
+
+                    .caption-label {
+                        font-weight: bold;
+                    }
+
+                    .caption-text {
+                        margin-left: 1em;
+                    }
+
+                    .caption-text em {
+                        font-style: italic;
+                    }
+
+                    .salutation {
+                        margin-bottom: 24pt;
+                    }
+
+                    /* --- Main Body & Interrogatories --- */
+                    .main-body {
+                        margin-bottom: 24pt;
+                    }
+
+                    .main-body p {
+                        margin-bottom: 12pt;
+                    }
+
+                    .interrogatory-heading {
                         font-weight: bold;
                         text-decoration: underline;
-                        font-size: 12pt;
-                        text-indent: 0;
-                        margin-bottom: 1em;
+                        margin-top: 24pt;
+                        margin-bottom: 12pt;
                     }
-                    .interrogatory-section .response-quote {
+
+                    .interrogatory-subheading {
+                        font-weight: bold;
+                        text-decoration: underline;
+                        margin-top: 24pt;
+                        margin-bottom: 12pt;
+                    }
+
+                    .sub-objection-heading {
+                        font-weight: bold;
+                        margin-top: 12pt;
+                        margin-bottom: 6pt;
+                        padding-left: 0.5in; /* Indent lettered subheadings */
+                    }
+
+                    /* --- Quote Block Styling --- */
+                    .response-quote {
                         margin-left: 0.5in;
                         margin-right: 0.5in;
-                        margin-bottom: 1em;
-                        font-style: italic;
+                        margin-top: 12pt;
+                        margin-bottom: 12pt;
+                        line-height: 1.2; /* Tighter line spacing for quotes */
+                        font-style: normal; /* Quotes are not italicized */
                         border-left: 2px solid #ccc;
                         padding-left: 1em;
                     }
-                    .interrogatory-section .legal-argument {
+
+                    .response-quote p {
+                        margin: 0;
+                        line-height: 1.2;
+                    }
+
+                    .response-quote p.no-indent {
                         text-indent: 0;
                     }
-                    .interrogatory-section .legal-argument p:first-child {
-                        text-indent: 0;
+
+                    /* --- Legal Argument Sections --- */
+                    .legal-argument {
+                        margin-top: 12pt;
+                        margin-bottom: 12pt;
                     }
-                    .interrogatory-section .legal-argument p {
+
+                    .legal-argument p {
+                        margin-bottom: 12pt;
                         text-indent: 0.5in;
                     }
-                    .signature-block {
-                        margin-top: 3em;
-                        padding-left: 4.5in;
-                    }
-                    .signature-block p {
-                        margin: 0;
+
+                    .legal-argument p:first-child {
                         text-indent: 0;
                     }
+
+                    /* --- Conclusion & Signature --- */
+                    .conclusion {
+                        margin-top: 24pt;
+                    }
+
+                    .conclusion p {
+                        margin-bottom: 12pt;
+                    }
+
+                    .signature-block {
+                        margin-top: 12pt;
+                        padding-left: 4.5in; /* Right-align signature block */
+                    }
+
+                    .signature-block p {
+                        margin: 0;
+                        line-height: 1.2;
+                    }
+
+                    .signature-space {
+                        height: 48pt; /* Reserve vertical space for the handwritten signature */
+                    }
+
+                    .author-initials {
+                        margin-top: 24pt;
+                        text-transform: uppercase;
+                    }
+
+                    /* --- Print-Specific Rules --- */
                     @media print {
-                        body {
+                        /* Avoid breaking key blocks across pages */
+                        .interrogatory-heading, 
+                        .interrogatory-subheading,
+                        .signature-block, 
+                        .response-quote {
+                            page-break-inside: avoid;
+                        }
+                        
+                        /* Encourage page breaks before major sections if needed */
+                        .interrogatory-heading,
+                        .interrogatory-subheading {
+                            page-break-before: auto;
+                        }
+                        
+                        /* Ensure proper page setup */
+                        body, 
+                        .legal-letter,
+                        .letter-container {
                             margin: 0;
-                            padding: 1in;
+                            padding: 0;
+                        }
+                        
+                        /* Maintain proper spacing in print */
+                        .interrogatory-section {
+                            page-break-inside: avoid;
                         }
                     }
                 </style>
@@ -160,10 +293,10 @@ class FileService {
         const options = {
             format: 'Letter',
             border: {
-                top: "0.5in",
-                right: "0.5in",
-                bottom: "0.5in",
-                left: "0.5in"
+                top: "0in",
+                right: "0in",
+                bottom: "0in",
+                left: "0in"
             },
             header: {
                 height: "0in"
