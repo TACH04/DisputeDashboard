@@ -86,7 +86,7 @@ exports.requestExtractionPrompt = (rawText) => `
 
 // Enhanced letter section prompts based on exact Gemini analysis
 exports.headerPrompt = (data, userProfile) => `
-  Generate a professional legal letter header following exact formatting standards for US courts.
+  Generate a professional legal letter header following the exact formatting from the provided PDF example.
 
   **Data:**
   - Date: "${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}"
@@ -97,37 +97,34 @@ exports.headerPrompt = (data, userProfile) => `
   - Response Date: "${data.responseDate}"
   - User Profile: ${JSON.stringify(userProfile)}
 
-  **Generate the complete HTML header section with this exact structure:**
+  **Generate the complete HTML header section matching this exact format:**
 
   <header class="letterhead">
-      <p class="letterhead-title">${userProfile.org || 'Law Offices of [Attorney Name]'}</p>
-      <p class="contact-info">${userProfile.orgAddress || 'Address Line 1, City, State ZIP'}</p>
-      <p class="contact-info">Voice: ${userProfile.phone || 'Phone'} • E-mail: ${userProfile.email || 'Email'}</p>
-      ${userProfile.barNumber ? `<p class="contact-info">Bar Number: ${userProfile.barNumber}</p>` : ''}
+      <p class="letterhead-title"><strong>${userProfile.org || 'Law Offices of [Attorney Name]'}</strong></p>
+      <p class="contact-info"><strong>${userProfile.orgAddress || 'Address Line 1, City, State ZIP'}</strong></p>
+      <p class="contact-info"><strong>Voice: ${userProfile.phone || 'Phone'} • Fax: ${userProfile.fax || 'Fax'} • E-mail: ${userProfile.email || 'Email'}</strong></p>
+      ${userProfile.website ? `<p class="contact-info"><strong>Web: ${userProfile.website}</strong></p>` : ''}
   </header>
 
   <p class="date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
 
   <div class="recipient-info">
-      <p><strong>VIA EMAIL ONLY:</strong></p>
+      <p><strong><u>VIA EMAIL ONLY:</u></strong></p>
       ${Array.isArray(data.recipientEmails) ? data.recipientEmails.map(email => `<p>${email}</p>`).join('') : `<p>${data.recipientEmails}</p>`}
   </div>
 
   <div class="case-caption">
-      <p>
-          <span class="caption-label">RE:</span>
-          <span class="caption-text">
-              <strong>Discovery Dispute</strong><br>
-              <em>${data.caseCaption}</em><br>
-              ${data.caseInfo}
-          </span>
+      <p style="margin-left: 40px;">
+          <strong>RE:</strong> Discovery Dispute<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em>${data.caseCaption}</em><br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${data.caseInfo}
       </p>
   </div>
 
   <p class="salutation">Dear ${data.salutationNames}:</p>
 
   <div class="main-body">
-      <p>I have received Defendants' Response to Plaintiff's First Set of Interrogatories dated ${data.responseDate}. This letter addresses several perceived deficiencies in the Response. Under LR Civ. P. 37.1, this letter gives a detailed description of the deficiencies and seeks voluntary compliance.</p>
+      <p style="margin-left: 40px;">I have received Defendants' Response to Plaintiff's First Set of Interrogatories dated ${data.responseDate}.</p>
       
       <h2 class="interrogatory-heading">Interrogatories:</h2>
   </div>
@@ -219,10 +216,10 @@ exports.completeLetterPrompt = (caseData, letterData, userProfile, extractReques
   <div class="letter-container">
       <!-- Letterhead Section -->
       <header class="letterhead">
-          <p class="letterhead-title">${userProfile.org || 'Law Offices of [Attorney Name]'}</p>
-          <p class="contact-info">${userProfile.orgAddress || 'Address Line 1, City, State ZIP'}</p>
-          <p class="contact-info">Voice: ${userProfile.phone || 'Phone'} • E-mail: ${userProfile.email || 'Email'}</p>
-          ${userProfile.barNumber ? `<p class="contact-info">Bar Number: ${userProfile.barNumber}</p>` : ''}
+          <p class="letterhead-title"><strong>${userProfile.org || 'Law Offices of [Attorney Name]'}</strong></p>
+          <p class="contact-info"><strong>${userProfile.orgAddress || 'Address Line 1, City, State ZIP'}</strong></p>
+          <p class="contact-info"><strong>Voice: ${userProfile.phone || 'Phone'} • Fax: ${userProfile.fax || 'Fax'} • E-mail: ${userProfile.email || 'Email'}</strong></p>
+          ${userProfile.website ? `<p class="contact-info"><strong>Web: ${userProfile.website}</strong></p>` : ''}
       </header>
 
       <!-- Date -->
@@ -230,19 +227,16 @@ exports.completeLetterPrompt = (caseData, letterData, userProfile, extractReques
 
       <!-- Recipient Info -->
       <div class="recipient-info">
-          <p><strong>VIA EMAIL ONLY:</strong></p>
+          <p><strong><u>VIA EMAIL ONLY:</u></strong></p>
           <p>opposing@counsel.com</p>
       </div>
 
       <!-- Case Caption -->
       <div class="case-caption">
-          <p>
-              <span class="caption-label">RE:</span>
-              <span class="caption-text">
-                  <strong>Discovery Dispute</strong><br>
-                  <em>${caseData.caseName}</em><br>
-                  ${caseData.caseData?.court || 'Court'} • ${caseData.caseData?.caseNumber || 'Case Number'}
-              </span>
+          <p style="margin-left: 40px;">
+              <strong>RE:</strong> Discovery Dispute<br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<em>${caseData.caseName}</em><br>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;${caseData.caseData?.court || 'Court'} • ${caseData.caseData?.caseNumber || 'Case Number'}
           </p>
       </div>
 
@@ -251,8 +245,7 @@ exports.completeLetterPrompt = (caseData, letterData, userProfile, extractReques
 
       <!-- Introduction -->
       <div class="main-body">
-          <p>I have received Defendants' Response to Plaintiff's First Set of Interrogatories dated ${letterData.responseDate || 'recent date'}.</p>
-          <p>I am writing to address several perceived deficiencies in the Response. Under LR Civ. P. 37.1, this letter gives you a detailed description of the deficiencies and seeks to obtain your voluntary compliance with your disclosure obligations without filing a joint statement of dispute and motion to compel.</p>
+          <p style="margin-left: 40px;">I have received Defendants' Response to Plaintiff's First Set of Interrogatories dated ${letterData.responseDate || 'recent date'}.</p>
           
           <h2 class="interrogatory-heading">Interrogatories:</h2>
       </div>

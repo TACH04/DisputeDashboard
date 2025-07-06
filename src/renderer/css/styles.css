@@ -1425,6 +1425,25 @@ textarea.form-input {
 }
 
 /* Date and Recipient Styles */
+.date {
+    text-align: center;
+    margin: 24pt 0;
+    font-weight: normal;
+    font-size: 12pt;
+}
+
+.recipient-info {
+    margin-bottom: 24pt;
+}
+
+.recipient-info p {
+    margin: 4pt 0;
+}
+
+.recipient-info strong u {
+    text-decoration: underline;
+}
+
 .letter-meta {
     margin-bottom: 2em;
 }
@@ -1438,6 +1457,16 @@ textarea.form-input {
 }
 
 /* RE: Block Styles */
+.case-caption {
+    margin-bottom: 24pt;
+}
+
+.case-caption p {
+    margin: 0;
+    text-indent: 0;
+    line-height: 1.5;
+}
+
 .re-block {
     margin-bottom: 2em;
     padding-left: 1in; /* Indent the RE block */
@@ -1447,7 +1476,22 @@ textarea.form-input {
     text-indent: 0;
 }
 
+/* Salutation Styles */
+.salutation {
+    margin: 24pt 0;
+    font-weight: normal;
+}
+
 /* Main Body Styles */
+.main-body {
+    margin-bottom: 24pt;
+}
+
+.main-body p {
+    margin: 12pt 0;
+    text-indent: 0;
+}
+
 .letter-body p {
     text-indent: 0.5in; /* Indent first line of paragraphs */
     margin: 0 0 1em 0;
@@ -1759,6 +1803,24 @@ textarea.form-input {
     font-size: 11pt;
     margin: 2pt 0; /* Tighter spacing for contact lines */
     line-height: 1.2;
+}
+
+/* Ensure letterhead is bold and centered */
+.letterhead p {
+    text-align: center;
+    margin: 2pt 0;
+}
+
+.letterhead .letterhead-title {
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 4pt;
+}
+
+.letterhead .contact-info {
+    font-size: 11pt;
+    font-weight: bold;
+    margin: 2pt 0;
 }
 
 /* --- Header & Caption Section --- */

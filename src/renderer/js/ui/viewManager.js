@@ -301,8 +301,8 @@ export class ViewManager {
     fillProfileForm(profile) {
         const fields = [
             'profile-name', 'profile-title', 'profile-email', 'profile-phone',
-            'profile-org', 'profile-org-address', 'profile-bar-number',
-            'profile-signature', 'profile-api-key'
+            'profile-fax', 'profile-website', 'profile-org', 'profile-org-address', 
+            'profile-bar-number', 'profile-signature', 'profile-api-key'
         ];
 
         fields.forEach(fieldId => {
@@ -334,6 +334,8 @@ export class ViewManager {
                 title: document.getElementById('profile-title')?.value || '',
                 email: document.getElementById('profile-email')?.value || '',
                 phone: document.getElementById('profile-phone')?.value || '',
+                fax: document.getElementById('profile-fax')?.value || '',
+                website: document.getElementById('profile-website')?.value || '',
                 org: document.getElementById('profile-org')?.value || '',
                 orgAddress: document.getElementById('profile-org-address')?.value || '',
                 barNumber: document.getElementById('profile-bar-number')?.value || '',

@@ -532,6 +532,14 @@
                         <input type="tel" id="profile-phone" class="form-input" placeholder="Enter your phone number">
                     </div>
                     <div class="form-group">
+                        <label for="profile-fax">Fax Number</label>
+                        <input type="tel" id="profile-fax" class="form-input" placeholder="Enter your fax number">
+                    </div>
+                    <div class="form-group">
+                        <label for="profile-website">Website</label>
+                        <input type="url" id="profile-website" class="form-input" placeholder="Enter your website URL">
+                    </div>
+                    <div class="form-group">
                         <label for="profile-api-key">Gemini API Key</label>
                         <input type="password" id="profile-api-key" class="form-input" placeholder="Enter your Gemini API Key">
                         <p class="help-text">Your key is stored locally and is never shared.</p>
@@ -576,11 +584,7 @@
                         <label>Operating System</label>
                         <div class="info-value" id="os-info"></div>
                     </div>
-                    <div class="info-group">
-                        <label>Data Management</label>
-                        <button class="btn btn-secondary" onclick="cleanupOldCases()">Clean Up Old Format Cases</button>
-                        <p class="help-text">Remove any cases that don't use the current data format (version 1.1).</p>
-                    </div>
+
                 </div>
             </div>
         </div>
@@ -655,18 +659,7 @@
             const modal = document.getElementById('preview-modal');
             if (modal) modal.classList.remove('visible');
         }
-        
-        async function cleanupOldCases() {
-            try {
-                const deletedCount = await window.electronAPI.cleanupOldCases();
-                alert(`Cleanup complete: ${deletedCount} old format cases were deleted.`);
-                // Reload the app to refresh the case list
-                location.reload();
-            } catch (error) {
-                console.error('Error during cleanup:', error);
-                alert('Error during cleanup: ' + error.message);
-            }
-        }
+
 
         // Case details modal functions
         function hideCaseDetailsModal() {

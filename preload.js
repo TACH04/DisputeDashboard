@@ -35,8 +35,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWorkspacePath: () => ipcRenderer.invoke('get-user-data-path'),
   getOSInfo: () => process.platform + ' ' + process.version,
 
-  // Cleanup functions
-  cleanupOldCases: () => ipcRenderer.invoke('cleanup-old-cases'),
+
 
   // Response letter version management
   saveResponseLetterVersion: (data) => ipcRenderer.invoke('save-response-letter-version', data),

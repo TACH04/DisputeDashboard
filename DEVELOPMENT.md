@@ -239,12 +239,12 @@ validateCaseData(caseData) {
 ### Migration Guidelines
 
 #### Data Version Updates
-- **Current version**: `1.1` (only supported version)
-- **Old format cases are automatically deleted on load**
+- **Current version**: `1.1` (current data format)
+- **Version field is automatically added to cases without it**
 - **No migration logic needed for new versions**
 
-#### Breaking Changes
-- Only version 1.1 format is supported
-- Cases with missing or different version numbers are deleted
-- No backward compatibility with older formats
+#### Data Format
+- Version 1.1 format is the current standard
+- Cases without version field are automatically updated
+- Full backward compatibility maintained
 - New installations start with version 1.1 format 

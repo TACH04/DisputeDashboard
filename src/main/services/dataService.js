@@ -198,11 +198,9 @@ class DataService {
             // Load main case data
             let caseData = JSON.parse(await fs.promises.readFile(caseFile, 'utf8'));
 
-            // Only load cases that are already in version 1.1 format
-            if (!caseData.version || caseData.version !== CURRENT_DATA_VERSION) {
-                console.log(`Deleting old format case: ${caseId} (version: ${caseData.version || 'none'})`);
-                await this.deleteCase(caseId);
-                return null;
+            // Ensure case has current version
+            if (!caseData.version) {
+                caseData.version = CURRENT_DATA_VERSION;
             }
 
             // Load version history if it exists
@@ -273,40 +271,7 @@ class DataService {
         }
     }
 
-    async cleanupOldFormatCases() {
-        try {
-            console.log('Starting cleanup of old format cases...');
-            const files = await fs.promises.readdir(DATA_DIR);
-            const caseDirs = files.filter(f => {
-                const fullPath = path.join(DATA_DIR, f);
-                return fs.statSync(fullPath).isDirectory();
-            });
-            
-            let deletedCount = 0;
-            for (const caseId of caseDirs) {
-                const caseFile = path.join(DATA_DIR, caseId, 'case.json');
-                if (fs.existsSync(caseFile)) {
-                    try {
-                        const caseData = JSON.parse(await fs.promises.readFile(caseFile, 'utf8'));
-                        if (!caseData.version || caseData.version !== CURRENT_DATA_VERSION) {
-                            await this.deleteCase(caseId);
-                            deletedCount++;
-                        }
-                    } catch (error) {
-                        console.error(`Error reading case file ${caseFile}:`, error);
-                        // If we can't read the file, it's probably corrupted, so delete it
-                        await this.deleteCase(caseId);
-                        deletedCount++;
-                    }
-                }
-            }
-            console.log(`Cleanup complete: deleted ${deletedCount} old format cases`);
-            return deletedCount;
-        } catch (error) {
-            console.error('Error during cleanup:', error);
-            return 0;
-        }
-    }
+
 }
 
 module.exports = DataService; 

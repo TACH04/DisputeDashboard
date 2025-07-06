@@ -221,14 +221,14 @@ userData/
 ## Migration Support
 
 ### Version History
-- **Current version**: `1.1` (only supported version)
+- **Current version**: `1.1` (current data format)
 - **Stored in case data as `version` field**
-- **Old format cases are automatically deleted**
+- **Version field automatically added to cases without it**
 
 ### Migration Rules
-- Only version 1.1 format is supported
-- Cases with missing or different version numbers are deleted
-- No backward compatibility with older formats
+- Version 1.1 format is the current standard
+- Cases without version field are automatically updated
+- Full backward compatibility maintained
 - New installations start with version 1.1 format
 
 ## Error Handling

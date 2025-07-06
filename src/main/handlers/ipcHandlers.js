@@ -96,10 +96,7 @@ class IPCHandlers {
             return this.userProfileService.getUserDataPath();
         });
 
-        // Cleanup old format cases
-        ipcMain.handle('cleanup-old-cases', async () => {
-            return await this.dataService.cleanupOldFormatCases();
-        });
+
 
         // Response letter version management
         ipcMain.handle('save-response-letter-version', async (event, { caseId, letterId, content, stats }) => {
